@@ -24,7 +24,7 @@ pub struct SelectedNode<'hive> {
 	pub(crate) handle: NodeHandle,
 }
 
-impl<'hive> SelectedNode<'hive> {
+impl SelectedNode<'_> {
 	/// Get registry hive from which this node is selected
 	pub fn hive(&self) -> BorrowedHive {
 		self.hive.clone()

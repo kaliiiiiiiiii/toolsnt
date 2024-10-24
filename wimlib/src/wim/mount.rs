@@ -19,7 +19,7 @@ use crate::{
 	sys, Error, Image, WimLib,
 };
 
-impl<'a> Image<'a> {
+impl Image<'_> {
 	/// Mount an image from a WIM file on a directory read-only or read-write
 	///
 	/// # Parameters

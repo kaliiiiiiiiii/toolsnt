@@ -240,7 +240,7 @@ impl<'a> SourceTargetPair<'a> {
 	}
 }
 
-impl<'a> Image<'a> {
+impl Image<'_> {
 	/// Add the file or directory tree at `fs_source_path` on the filesystem to
 	/// the location `wim_target_path` within the specified image of the wim
 	///
@@ -326,12 +326,11 @@ impl<'a> Image<'a> {
 	///
 	/// # Notes
 	/// - This operation is an in-memory operation; no changes are commited to
-	/// disk until [`Image::write`] or [`Wim::overwrite`] is called.
+	///   disk until [`Image::write`] or [`Wim::overwrite`] is called.
 	///
 	/// - A limitation of current implementation is that the directory tree of
-	///   as
-	/// source or destination image cannot be updated following and export until
-	/// one of two images has been freed from memory.
+	///   as source or destination image cannot be updated following and
+	///   export until one of two images has been freed from memory.
 	///
 	/// # Error values
 	/// - [`Error::DuplicateExportedImage`]: One or more of the source images
@@ -565,20 +564,20 @@ pub struct UpdateCommand<'a> {
 	_borrows: PhantomData<&'a TStr>,
 }
 
-impl<'a> Debug for UpdateCommand<'a> {
+impl Debug for UpdateCommand<'_> {
 	fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		// TODO
 		Ok(())
 	}
 }
 
-impl<'a> PartialEq for UpdateCommand<'a> {
+impl PartialEq for UpdateCommand<'_> {
 	fn eq(&self, _other: &Self) -> bool {
 		false // TODO
 	}
 }
 
-impl<'a> Eq for UpdateCommand<'a> {}
+impl Eq for UpdateCommand<'_> {}
 
 impl<'a> UpdateCommand<'a> {
 	/// Add a new file or directory tree to the image

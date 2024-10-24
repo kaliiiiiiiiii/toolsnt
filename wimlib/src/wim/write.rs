@@ -128,7 +128,7 @@ impl Wim {
 	}
 }
 
-impl<'a> Image<'a> {
+impl Image<'_> {
 	/// Persist a [`Wim`] to a new on-disk WIM file
 	///
 	/// This brings in file data from any external locations, such as directory

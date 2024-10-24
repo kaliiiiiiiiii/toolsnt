@@ -188,7 +188,7 @@ pub struct BorrowedHive<'a> {
 	_lifetime: PhantomData<&'a Hive>,
 }
 
-impl<'a> Clone for BorrowedHive<'a> {
+impl Clone for BorrowedHive<'_> {
 	fn clone(&self) -> Self {
 		Self {
 			hive: ManuallyDrop::new(Hive(self.hive.0)),
@@ -197,7 +197,7 @@ impl<'a> Clone for BorrowedHive<'a> {
 	}
 }
 
-impl<'a> Deref for BorrowedHive<'a> {
+impl Deref for BorrowedHive<'_> {
 	type Target = Hive;
 
 	fn deref(&self) -> &Self::Target {

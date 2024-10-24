@@ -184,7 +184,7 @@ impl<'hive, Type> Object<'hive, Type> {
 	}
 }
 
-impl<'hive, Type> Object<'hive, Type>
+impl<Type> Object<'_, Type>
 where
 	Type: IsNotInherit,
 {
@@ -213,7 +213,7 @@ where
 	}
 }
 
-impl<'hive, For> Object<'hive, Inherit<For>> {
+impl<For> Object<'_, Inherit<For>> {
 	/// Get an element
 	pub fn get<E>(&self, key: E) -> Result<<E::Format as Format>::Get, GetError>
 	where

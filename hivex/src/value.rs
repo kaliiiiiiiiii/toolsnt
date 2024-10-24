@@ -327,7 +327,7 @@ pub trait ValueString {
 	fn to_utf16(&self) -> Result<Box<[u16]>, Utf8Error>;
 }
 
-impl<'this> ValueString for &'this str {
+impl ValueString for &str {
 	fn into_c_string<'a>(self) -> Cow<'a, CStr>
 	where
 		Self: 'a,
@@ -344,7 +344,7 @@ impl<'this> ValueString for &'this str {
 	}
 }
 
-impl<'this> ValueString for &'this [u8] {
+impl ValueString for &[u8] {
 	fn into_c_string<'a>(self) -> Cow<'a, CStr>
 	where
 		Self: 'a,
@@ -374,7 +374,7 @@ impl<'this> ValueString for &'this [u8] {
 	}
 }
 
-impl<'this> ValueString for &'this CStr {
+impl ValueString for &CStr {
 	fn into_c_string<'a>(self) -> Cow<'a, CStr>
 	where
 		Self: 'a,
@@ -409,7 +409,7 @@ impl ValueString for CString {
 	}
 }
 
-impl<'this> ValueString for Cow<'this, CStr> {
+impl ValueString for Cow<'_, CStr> {
 	fn into_c_string<'a>(self) -> Cow<'a, CStr>
 	where
 		Self: 'a,

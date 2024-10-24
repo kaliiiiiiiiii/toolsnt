@@ -391,7 +391,7 @@ pub struct StreamEntry<'a> {
 	pub resource: ResourceEntry,
 }
 
-impl<'a> StreamEntry<'a> {
+impl StreamEntry<'_> {
 	/// Create [`WimInfo`] from C structure
 	pub fn from_raw(ffi: sys::wimlib_stream_entry) -> Self {
 		let stream_name =
@@ -427,7 +427,7 @@ impl<'a> LazyStreamEntry<'a> {
 	}
 }
 
-impl<'a> Debug for LazyStreamEntry<'a> {
+impl Debug for LazyStreamEntry<'_> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.debug_struct("LazyStreamEntry").finish_non_exhaustive()
 	}

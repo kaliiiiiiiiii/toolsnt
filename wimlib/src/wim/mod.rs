@@ -100,7 +100,7 @@ pub struct Image<'a> {
 	_borrows_wim: PhantomData<&'a Wim>,
 }
 
-impl<'a> Image<'a> {
+impl Image<'_> {
 	fn ffi_index(&self) -> i32 {
 		self.index.get() as i32
 	}

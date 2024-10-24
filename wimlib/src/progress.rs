@@ -401,7 +401,7 @@ pub struct SplitMsg<'a> {
 	pub part_name: &'a TStr,
 }
 
-impl<'a> SplitMsg<'a> {
+impl SplitMsg<'_> {
 	/// Create message from FFI value
 	pub fn from_raw(ffi: sys::wimlib_progress_info_wimlib_progress_info_split) -> Self {
 		Self {
@@ -494,7 +494,7 @@ pub struct VerifyImageMsg<'a> {
 	pub current_image: u32,
 }
 
-impl<'a> ProgressMsg<'a> {
+impl ProgressMsg<'_> {
 	unsafe fn from_raw(
 		tag: sys::wimlib_progress_msg,
 		payload: *mut sys::wimlib_progress_info,
@@ -700,7 +700,7 @@ impl<'a> ProgressMsg<'a> {
 	}
 }
 
-impl<'a> ExtractMsg<'a> {
+impl ExtractMsg<'_> {
 	unsafe fn from_raw(
 		payload: sys::wimlib_progress_info_wimlib_progress_info_extract,
 	) -> Option<Self> {
@@ -726,7 +726,7 @@ impl<'a> ExtractMsg<'a> {
 	}
 }
 
-impl<'a> ExtractMsg<'a, ExtractFsOrMetadataExtras> {
+impl ExtractMsg<'_, ExtractFsOrMetadataExtras> {
 	unsafe fn with_extract_fs_or_metadata_extras(
 		payload: sys::wimlib_progress_info_wimlib_progress_info_extract,
 	) -> Option<Self> {
@@ -756,7 +756,7 @@ impl<'a, Extras> ExtractMsg<'a, Extras> {
 	}
 }
 
-impl<'a> ScanMsg<'a> {
+impl ScanMsg<'_> {
 	unsafe fn from_raw(payload: sys::wimlib_progress_info_wimlib_progress_info_scan) -> Self {
 		let (source, target_path);
 		unsafe {
@@ -801,7 +801,7 @@ impl IntegrityMsg {
 	}
 }
 
-impl<'a> VerifyImageMsg<'a> {
+impl VerifyImageMsg<'_> {
 	unsafe fn from_raw(
 		payload: sys::wimlib_progress_info_wimlib_progress_info_verify_image,
 	) -> Self {

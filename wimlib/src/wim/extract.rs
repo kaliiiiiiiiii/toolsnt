@@ -26,7 +26,7 @@ use {
 	std::{fs::File, os::fd::AsRawFd},
 };
 
-impl<'a> Image<'a> {
+impl Image<'_> {
 	/// Extract an image (or all images) from a WIM
 	///
 	/// The exact behavior of how wimlib extracts files from a WIM image is
