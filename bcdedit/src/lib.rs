@@ -7,7 +7,7 @@ mod typesystem;
 
 use {
 	derive_more::{Display, Error},
-	error_stack::{report, Result, ResultExt},
+	error_stack::{Result, ResultExt},
 	hivex::{node::NodeHandle, CommitFlags, Hive, LibCBox, SetValueFlags},
 	object::Object,
 	std::ffi::CString,
@@ -88,7 +88,7 @@ impl Bcd {
 
 			elements_handle = maybe_elements_handle.ok_or(ObjectRetrievalError::MissingElements)?;
 		}
-		
+
 		let type_value = self
 			.hive
 			.node(description_handle)

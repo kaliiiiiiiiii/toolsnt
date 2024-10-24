@@ -10,15 +10,7 @@ use {
 		value::{Value, ValueHandle, ValueString, ValueType},
 		BorrowedHive, LibCBox, SetValueFlags,
 	},
-	std::{
-		borrow::Cow,
-		ffi::CStr,
-		marker::PhantomData,
-		mem::{size_of, ManuallyDrop},
-		ops::Deref,
-		ptr::addr_of,
-		time::SystemTime,
-	},
+	std::{ffi::CStr, mem::size_of, ops::Deref, ptr::addr_of},
 	time::PrimitiveDateTime,
 };
 
@@ -69,8 +61,8 @@ impl SelectedNode<'_> {
 		crate::win_filetime_to_primitive_datetime(raw)
 	}
 
-	/// Return an owned slice of [`Node`] which are the subkeys (children) of
-	/// node.
+	/// Return an owned slice of [`NodeHandle`] which are the subkeys (children)
+	/// of node.
 	pub fn children(&self) -> LibCBox<[NodeHandle]> {
 		unsafe {
 			let raw_ptr = self.hive.as_handle();

@@ -52,7 +52,7 @@ impl<'hive> SelectedValue<'hive> {
 
 	/// Return the lenght and data type of [`Value`]
 	///
-	/// You can use [`Self::value_get`] if you know the type in advance.
+	/// You can use [`Self::get`] if you know the type in advance.
 	pub fn type_of(&self) -> Option<ValueTypeRet> {
 		let mut ffi_type = 0;
 		let mut len = 0;
@@ -69,7 +69,7 @@ impl<'hive> SelectedValue<'hive> {
 		(result == 0).then_some(ValueTypeRet { ty, len })
 	}
 
-	/// Return [`ValueBytesRet`] of [`Value`]. The byte slice should be
+	/// Return [`RawValue`] of [`Value`]. The byte slice should be
 	/// interpreted according to its type.
 	pub fn raw(&self) -> std::io::Result<RawValue> {
 		let mut ffi_type = 0;

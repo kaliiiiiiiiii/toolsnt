@@ -13,10 +13,7 @@ pub use {hivex_sys as sys, sys::VERSION};
 use {
 	alloc::LibcAlloc,
 	node::{NodeHandle, SelectedNode},
-	std::{
-		ffi::CStr, io::Write, marker::PhantomData, mem::ManuallyDrop, ops::Deref, path::Path,
-		time::SystemTime,
-	},
+	std::{ffi::CStr, io::Write, marker::PhantomData, mem::ManuallyDrop, ops::Deref, path::Path},
 	time::PrimitiveDateTime,
 	utils::{check_pointer_null, check_status_zero, wrap_handle},
 	value::{SelectedValue, ValueHandle, ValueString},
