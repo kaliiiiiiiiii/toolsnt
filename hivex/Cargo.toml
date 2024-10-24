@@ -11,3 +11,7 @@ allocator-api2 = "0.2"
 bitflags       = "2.5"
 libc_alloc     = "1.0"
 time           = "0.3"
+
+[dev-dependencies.uuid]
+version  = "1.11"
+features = ["v4", "fast-rng"]

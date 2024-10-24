@@ -261,18 +261,20 @@ impl SelectedNode<'_> {
 		ty: ValueType,
 		data: &[impl ValueString],
 	) -> std::io::Result<()> {
-		let utf16_data: Box<_> = data
-			.iter()
-			.map(ValueString::to_utf16)
-			.collect::<Result<_, _>>()
-			.map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+		let mut utf16_data = vec![];
+		for string in data {
+			utf16_data.extend_from_slice(&string.to_utf16().unwrap());
+			if utf16_data.last() != Some(&0) {
+				utf16_data.push(0);
+			}
+		}
 
-		let len_bytes = utf16_data.len() * size_of::<u16>();
+		let len = utf16_data.len() * size_of::<u16>();
 
 		let set_value = sys::hive_set_value {
 			key: key.as_ptr().cast_mut().cast(),
 			t: ty as u32,
-			len: len_bytes,
+			len,
 			value: utf16_data.as_ptr().cast_mut().cast(),
 		};
 

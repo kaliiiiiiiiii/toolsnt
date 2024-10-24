@@ -1,6 +1,6 @@
 //! Safe Hivex library wrapper for manipulating Windows Registry hives
 
-#![forbid(unsafe_op_in_unsafe_fn, clippy::missing_const_for_fn)]
+#![forbid(unsafe_op_in_unsafe_fn)]
 
 pub mod alloc;
 pub mod node;
@@ -30,6 +30,7 @@ pub static EMPTY_HIVE_TEMPLATE: &[u8] = include_bytes!("../EmptyHive.dat");
 
 bitflags::bitflags! {
 	/// Flags for [`Hive::open`]
+	#[derive(Clone, Copy, Default, PartialEq, Eq)]
 	pub struct OpenFlags: std::ffi::c_int {
 		/// Verbose messages
 		const VERBOSE = sys::HIVEX_OPEN_VERBOSE as _;
@@ -53,9 +54,11 @@ bitflags::bitflags! {
 	}
 
 	/// Flags for [`Hive::commit`]
+	#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 	pub struct CommitFlags: std::ffi::c_int {}
 
 	/// Flags for [`Hive::node_set_value`]
+	#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 	pub struct SetValueFlags: std::ffi::c_int {}
 }
 
@@ -202,6 +205,7 @@ impl Deref for BorrowedHive<'_> {
 	}
 }
 
+/// Convert Windows [File Time](https://learn.microsoft.com/en-us/windows/win32/sysinfo/file-times) to [`PrimitiveDateTime`]
 fn win_filetime_to_primitive_datetime(win_time: i64) -> PrimitiveDateTime {
 	let epoch_start = PrimitiveDateTime::new(
 		time::Date::from_ordinal_date(1601, 1)
@@ -214,3 +218,4 @@ fn win_filetime_to_primitive_datetime(win_time: i64) -> PrimitiveDateTime {
 		.checked_add(duration)
 		.expect("This should be a valid date")
 }
+
