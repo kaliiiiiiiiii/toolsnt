@@ -10,7 +10,16 @@ use {
 		value::{Value, ValueHandle, ValueString, ValueType},
 		BorrowedHive, LibCBox, SetValueFlags,
 	},
-	std::{mem::size_of, ops::Deref, ptr::addr_of, time::SystemTime},
+	std::{
+		borrow::Cow,
+		ffi::CStr,
+		marker::PhantomData,
+		mem::{size_of, ManuallyDrop},
+		ops::Deref,
+		ptr::addr_of,
+		time::SystemTime,
+	},
+	time::PrimitiveDateTime,
 };
 
 /// A node handle
@@ -55,8 +64,9 @@ impl SelectedNode<'_> {
 	}
 
 	/// Return the modification time of the node
-	pub fn timestamp(&self) -> SystemTime {
-		todo!()
+	pub fn timestamp(&self) -> PrimitiveDateTime {
+		let raw = unsafe { sys::hivex_node_timestamp(self.hive.as_handle(), self.handle.0) };
+		crate::win_filetime_to_primitive_datetime(raw)
 	}
 
 	/// Return an owned slice of [`Node`] which are the subkeys (children) of
@@ -170,18 +180,18 @@ impl SelectedNode<'_> {
 		let c_key = key.into_c_string();
 		let ty = value.type_of();
 
-		// In most case, just get pointer to the data
+		// In most cases, just get pointer to the data
 		let (data, len) = match value {
-			Value::None => (std::ptr::null(), 0),
 			Value::Sz(x) | Value::ExpandSz(x) | Value::Link(x) => {
 				// Requires special treatment, use separate function
 				return self.set_value_string(flags, &*c_key, ty, x);
 			}
+			Value::MultiSz(x) => return self.set_value_multistring(flags, &c_key, ty, &x),
+			Value::None => (std::ptr::null(), 0),
 			Value::Binary(x) => (x.as_ptr(), x.len()),
-			Value::Dword(x) => (addr_of!(x).cast(), size_of::<i32>()),
+			Value::Dword(x) => ((&raw const x).cast(), size_of::<i32>()),
 			Value::DwordBe(x) => (addr_of!(x).cast(), size_of::<i32>()),
 			Value::Qword(x) => (addr_of!(x).cast(), size_of::<i64>()),
-			Value::MultiSz(_) => todo!(),
 			Value::ResourceList(_) => todo!(),
 			Value::FullResourceDescriptor(_) => todo!(),
 			Value::ResourceRequirementsList(_) => todo!(),
@@ -236,6 +246,42 @@ impl SelectedNode<'_> {
 			t: ty as u32,
 			len: utf16.len() * size_of::<u16>(),
 			value: utf16.as_mut_ptr().cast(),
+		};
+
+		let status = unsafe {
+			sys::hivex_node_set_value(
+				self.hive.as_handle(),
+				self.handle.0,
+				&set_value,
+				flags.bits(),
+			)
+		};
+
+		check_status_zero(status)
+	}
+
+	/// Set value of type `MultiSz`
+	fn set_value_multistring(
+		&self,
+		flags: SetValueFlags,
+		key: &CStr,
+		ty: ValueType,
+		data: &[impl ValueString],
+	) -> std::io::Result<()> {
+		// todo: do not ignore error
+		let utf16_data: Box<_> = data
+			.iter()
+			.map(ValueString::to_utf16)
+			.collect::<Result<_, _>>()
+			.map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+
+		let len_bytes = utf16_data.len() * size_of::<u16>();
+
+		let set_value = sys::hive_set_value {
+			key: key.as_ptr().cast_mut().cast(),
+			t: ty as u32,
+			len: len_bytes,
+			value: utf16_data.as_ptr().cast_mut().cast(),
 		};
 
 		let status = unsafe {

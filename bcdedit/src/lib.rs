@@ -64,12 +64,31 @@ impl Bcd {
 	) -> Result<Object<'_, object::Any>, ObjectRetrievalError> {
 		let object = self.hive.node(handle.0);
 
-		// TODO: optimalise double lookup
-		let description_handle = object
-			.get_child("Description")
-			.ok_or_else(|| report!(ObjectRetrievalError::MissingType))
-			.attach_printable("Failed to retrieve `Description` node handle")?;
+		let (description_handle, elements_handle);
+		{
+			let (mut maybe_description_handle, mut maybe_elements_handle) = (None, None);
+			let children = object.children();
+			for child in children.iter().copied() {
+				let name = self
+					.hive
+					.node(child)
+					.name()
+					.expect("The node was in child list, the name should exist");
 
+				match name.trim_end_matches('\0') {
+					"Description" => maybe_description_handle = Some(child),
+					"Elements" => maybe_elements_handle = Some(child),
+					_ => (),
+				}
+			}
+
+			description_handle = maybe_description_handle
+				.ok_or(ObjectRetrievalError::MissingType)
+				.attach_printable("Failed to retreive `Description` node handle")?;
+
+			elements_handle = maybe_elements_handle.ok_or(ObjectRetrievalError::MissingElements)?;
+		}
+		
 		let type_value = self
 			.hive
 			.node(description_handle)
@@ -79,10 +98,6 @@ impl Bcd {
 
 		let type_num = self.hive.value(type_value).downcast_dword();
 		let type_ = object::typetag::from_tag(type_num).ok_or(ObjectRetrievalError::InvalidType)?;
-
-		let elements_handle = object
-			.get_child("Elements")
-			.ok_or(ObjectRetrievalError::MissingElements)?;
 
 		let elements = self.hive.node(elements_handle);
 		let uuid = self

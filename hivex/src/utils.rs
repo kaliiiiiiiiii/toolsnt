@@ -20,8 +20,8 @@ pub fn check_pointer_null<T>(ptr: *mut T) -> std::io::Result<()> {
 }
 
 /// Check if status integer is zero. If it is, return last OS error.
-pub fn check_status_zero(value: std::ffi::c_int) -> std::io::Result<()> {
-	if value == 0 {
+pub fn check_status_zero(status: std::ffi::c_int) -> std::io::Result<()> {
+	if status == 0 {
 		Ok(())
 	} else {
 		Err(last_os_error())

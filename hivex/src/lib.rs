@@ -8,9 +8,7 @@ pub mod value;
 
 mod utils;
 
-pub use hivex_sys as sys;
-
-pub use sys::VERSION;
+pub use {hivex_sys as sys, sys::VERSION};
 
 use {
 	alloc::LibcAlloc,
@@ -19,6 +17,7 @@ use {
 		ffi::CStr, io::Write, marker::PhantomData, mem::ManuallyDrop, ops::Deref, path::Path,
 		time::SystemTime,
 	},
+	time::PrimitiveDateTime,
 	utils::{check_pointer_null, check_status_zero, wrap_handle},
 	value::{SelectedValue, ValueHandle, ValueString},
 };
@@ -108,8 +107,9 @@ impl Hive {
 	}
 
 	/// Return the modification time from the header of the hive
-	pub fn last_modified(&self) -> SystemTime {
-		todo!()
+	pub fn last_modified(&self) -> PrimitiveDateTime {
+		let raw_wintime = unsafe { sys::hivex_last_modified(self.as_handle()) };
+		win_filetime_to_primitive_datetime(raw_wintime)
 	}
 
 	/// Write changes to the hive.
@@ -203,4 +203,17 @@ impl Deref for BorrowedHive<'_> {
 	fn deref(&self) -> &Self::Target {
 		&self.hive
 	}
+}
+
+fn win_filetime_to_primitive_datetime(win_time: i64) -> PrimitiveDateTime {
+	let epoch_start = PrimitiveDateTime::new(
+		time::Date::from_ordinal_date(1601, 1)
+			.expect("Start date of Windows Epoch should be valid"),
+		time::Time::MIDNIGHT,
+	);
+
+	let duration = time::Duration::milliseconds(win_time / 10);
+	epoch_start
+		.checked_add(duration)
+		.expect("This should be a valid date")
 }
