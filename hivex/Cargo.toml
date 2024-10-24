@@ -1,7 +1,8 @@
 [package]
-name = "hivex"
+name    = "hivex"
 version = "0.1.0"
 edition = "2021"
+license = "EUPL-v1.2"
 
 [dependencies]
 hivex-sys.path = "sys"
