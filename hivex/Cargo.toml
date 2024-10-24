@@ -1,0 +1,11 @@
+[package]
+name = "hivex"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+hivex-sys.path = "sys"
+
+allocator-api2 = "0.2"
+bitflags       = "2.5"
+libc_alloc     = "1.0"

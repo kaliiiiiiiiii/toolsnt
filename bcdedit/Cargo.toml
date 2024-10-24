@@ -1,0 +1,21 @@
+[package]
+name    = "bcdedit"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+hivex.path        = "../hivex"
+
+allocator-api2    = "0.2"
+binrw             = "0.14"
+derive_more       = "0.99"
+error-stack       = "0.4"
+mycelium-bitfield = "0.1"
+uuid              = "1.8"
+
+[dependencies.bytemuck]
+version  = "1.15"
+features = ["extern_crate_std"]
+
+[dev-dependencies]
+assert_matches = "1.5"
