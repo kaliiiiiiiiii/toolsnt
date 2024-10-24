@@ -1,8 +1,10 @@
 [package]
-name = "hivex-sys"
+name    = "hivex-sys"
 version = "0.1.0"
 edition = "2021"
+license = "EUPL-v1.2"
+links   = "hivex"
 
 [build-dependencies]
-bindgen    = "0.69"
+bindgen    = "0.70"
 pkg-config = "0.3"

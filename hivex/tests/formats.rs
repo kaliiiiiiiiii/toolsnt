@@ -10,8 +10,12 @@ fn multistring() {
 	let root = hive.node(hive.root().unwrap());
 
 	let expected: Box<[&str]> = ["cat", "sus"].into();
-	root.set_value(SetValueFlags::default(), c"nyan", Value::MultiSz(expected.clone()))
-		.unwrap();
+	root.set_value(
+		SetValueFlags::default(),
+		c"nyan",
+		Value::MultiSz(expected.clone()),
+	)
+	.unwrap();
 
 	let Value::MultiSz(value) = hive.value(root.get_value(c"nyan").unwrap()).get().unwrap() else {
 		panic!("Expected MultiSz");

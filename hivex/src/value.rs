@@ -18,6 +18,7 @@ use {
 #[repr(transparent)]
 pub struct ValueHandle(pub(crate) sys::hive_value_h);
 
+#[must_use]
 pub struct SelectedValue<'hive> {
 	pub(crate) hive: BorrowedHive<'hive>,
 	pub(crate) handle: ValueHandle,
@@ -355,15 +356,14 @@ impl ValueString for &[u8] {
 	where
 		Self: 'a,
 	{
-		match CStr::from_bytes_until_nul(self) {
-			Ok(x) => Cow::Borrowed(x),
-			Err(_) => {
-				let cstring = CString::new(self);
-				match cstring {
-					Ok(cstring) => Cow::Owned(cstring),
-					Err(_) => unreachable!("This branch exists solely for converting non-NUL terminated string. NUL found."),
-				}
-			}
+		if let Ok(x) = CStr::from_bytes_until_nul(self) {
+			Cow::Borrowed(x)
+		} else {
+			let cstring = CString::new(self);
+			match cstring {
+  					Ok(cstring) => Cow::Owned(cstring),
+  					Err(_) => unreachable!("This branch exists solely for converting non-NUL terminated string. NUL found."),
+  				}
 		}
 	}
 

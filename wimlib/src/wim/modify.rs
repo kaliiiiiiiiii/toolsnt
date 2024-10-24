@@ -329,8 +329,8 @@ impl Image<'_> {
 	///   disk until [`Image::write`] or [`Wim::overwrite`] is called.
 	///
 	/// - A limitation of current implementation is that the directory tree of
-	///   as source or destination image cannot be updated following and
-	///   export until one of two images has been freed from memory.
+	///   as source or destination image cannot be updated following and export
+	///   until one of two images has been freed from memory.
 	///
 	/// # Error values
 	/// - [`Error::DuplicateExportedImage`]: One or more of the source images

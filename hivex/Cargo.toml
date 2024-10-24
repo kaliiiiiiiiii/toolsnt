@@ -2,13 +2,24 @@
 name    = "hivex"
 version = "0.1.0"
 edition = "2021"
-license = "EUPL-v1.2"
+
+description = "(Hopefully) idiomatic bindings to the Hivex library"
+repository  = "https://codeberg.org/erin/toolsnt"
+license     = "EUPL-v1.2"
+keywords    = [
+	"windows-registry",
+	"hive",
+	"registry",
+	"bindings",
+	"api-bindings",
+	"windows"
+]
 
 [dependencies]
 hivex-sys.path = "sys"
 
 allocator-api2 = "0.2"
-bitflags       = "2.5"
+bitflags       = "2.6"
 libc_alloc     = "1.0"
 time           = "0.3"
 

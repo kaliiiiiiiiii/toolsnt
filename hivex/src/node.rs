@@ -10,7 +10,7 @@ use {
 		value::{Value, ValueHandle, ValueString, ValueType},
 		BorrowedHive, LibCBox, SetValueFlags,
 	},
-	std::{ffi::CStr, mem::size_of, ops::Deref, ptr::addr_of},
+	std::{ffi::CStr, mem::size_of, ptr::addr_of},
 	time::PrimitiveDateTime,
 };
 
@@ -20,6 +20,7 @@ use {
 pub struct NodeHandle(pub(crate) sys::hive_node_h);
 
 /// Selected node
+#[must_use]
 pub struct SelectedNode<'hive> {
 	pub(crate) hive: BorrowedHive<'hive>,
 	pub(crate) handle: NodeHandle,
@@ -91,7 +92,7 @@ impl SelectedNode<'_> {
 					.name()
 					.expect("The node was in child list, the name should exist");
 
-				child_name.deref() == searched_name
+				&*child_name == searched_name
 			})
 			.copied()
 	}
@@ -161,7 +162,7 @@ impl SelectedNode<'_> {
 
 	/// Set a value under `node` with name `key`
 	///
-	/// There are no `flags`` specified at this time, use
+	/// There are no `flags` specified at this time, use
 	/// [`SetValueFlags::empty`]
 	pub fn set_value<Str: ValueString>(
 		&self,
@@ -185,7 +186,7 @@ impl SelectedNode<'_> {
 
 			// Requires special treatment, use separate functions:
 			Value::Sz(x) | Value::ExpandSz(x) | Value::Link(x) => {
-				return self.set_value_string(flags, &*c_key, ty, x);
+				return self.set_value_string(flags, &*c_key, ty, &x);
 			}
 			Value::MultiSz(x) => return self.set_value_multistring(flags, &c_key, ty, &x),
 		};
@@ -217,7 +218,7 @@ impl SelectedNode<'_> {
 		flags: SetValueFlags,
 		key: impl ValueString,
 		ty: ValueType,
-		bytes: impl ValueString,
+		bytes: &impl ValueString,
 	) -> std::io::Result<()> {
 		debug_assert!(
 			matches!(ty, ValueType::Sz | ValueType::ExpandSz | ValueType::Link),
