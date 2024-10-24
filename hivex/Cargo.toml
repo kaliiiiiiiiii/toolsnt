@@ -5,7 +5,7 @@ edition = "2021"
 
 description = "(Hopefully) idiomatic bindings to the Hivex library"
 repository  = "https://codeberg.org/erin/toolsnt"
-license     = "EUPL-v1.2"
+license     = "EUPL-1.2"
 categories  = ["api-bindings"]
 keywords    = [
 	"windows-registry",
