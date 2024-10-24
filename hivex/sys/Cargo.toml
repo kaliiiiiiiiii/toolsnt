@@ -2,8 +2,11 @@
 name    = "hivex-sys"
 version = "0.1.0"
 edition = "2021"
-license = "EUPL-v1.2"
 links   = "hivex"
+
+description = "Raw and generated bindings to Hivex"
+categories  = ["external-ffi-bindings"]
+license     = "EUPL-v1.2"
 
 [build-dependencies]
 bindgen    = "0.70"
