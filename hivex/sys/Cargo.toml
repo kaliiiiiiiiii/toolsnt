@@ -5,6 +5,7 @@ edition = "2021"
 links   = "hivex"
 
 description = "Raw and generated bindings to Hivex"
+repository  = "https://codeberg.org/erin/toolsnt"
 categories  = ["external-ffi-bindings"]
 license     = "EUPL-v1.2"
 
