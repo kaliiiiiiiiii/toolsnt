@@ -2,7 +2,7 @@
 name    = "wimlib"
 version = "0.1.0"
 edition = "2021"
-license = "EUPL-v1.2"
+license = "EUPL-1.2"
 
 [features]
 default = ["mount"]
