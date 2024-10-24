@@ -16,12 +16,13 @@ keywords    = [
 ]
 
 [dependencies]
-hivex-sys.path = "sys"
+hivex-sys = { path = "sys", version = "0.1" }
 
 allocator-api2 = "0.2"
 bitflags       = "2.6"
 libc_alloc     = "1.0"
 time           = "0.3"
+
 
 [dev-dependencies.uuid]
 version  = "1.11"
