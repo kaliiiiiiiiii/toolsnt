@@ -1,4 +1,38 @@
-//! Safe Hivex library wrapper for manipulating Windows Registry hives
+//! # Hivex
+//!
+//! _FFI bindings for the [Hivex] C library_
+//!
+//! Hivex is a library for reading and manipulating Windows NT registry hives.
+//! This crate attempts to idiomatically wrap this library for usage in Rust.
+//!
+//! Most of the documentation, which isn't a Rust-specific concept like
+//! [`SelectedNode`][`node::SelectedNode`] is taken and adapted from the [Hivex]
+//! documentation.
+//!
+//! ## Core concepts
+//! - [Hive][`Hive`]: Windows Registry database file. These do not have to
+//!   correspond to `HKEY`s in the tree. [Learn more in Microsoft docs][Hive].
+//! - Node: That's what Microsoft calls keys. These contain key-value entries
+//!   (ye I know, confusing).
+//! - [Value][`value::Value`]: Values associated to keys in nodes. They have
+//!   several types
+//! - Handle: An opaque reference to an entity inside hive
+//! - `Selected`{[`Node`][`node::SelectedNode`],
+//!   [`Value`][`value::SelectedValue`]}: Convenience wrapper referencing hive
+//!   and the entity which allows you to manipulate it
+//!
+//! ## Implementation notes
+//! - Hivex library itself doesn't support creation of new hives. This crate
+//!   contains a pre-defined empty registry hive created on Windows NT 10.0
+//! - Strings retrieved from the hive will get its NUL-terminator striped by the
+//!   bindings
+//!
+//! ## Warning
+//! **Not everything is yet tested. Some data may be saved or retrieved
+//! incorrectly and corrupt your system. Proceed with caution.**
+//!
+//! [Hivex]: https://libguestfs.org/hivex.3.html
+//! [Hive]: https://learn.microsoft.com/en-us/windows/win32/sysinfo/registry-hives
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 
@@ -8,20 +42,15 @@ pub mod value;
 
 mod utils;
 
-pub use {hivex_sys as sys, sys::VERSION};
+pub use {alloc::LibCBox, hivex_sys as sys, sys::VERSION};
 
 use {
-	alloc::LibcAlloc,
 	node::{NodeHandle, SelectedNode},
 	std::{ffi::CStr, io::Write, marker::PhantomData, mem::ManuallyDrop, ops::Deref, path::Path},
 	time::PrimitiveDateTime,
 	utils::{check_pointer_null, check_status_zero, wrap_handle},
 	value::{SelectedValue, ValueHandle, ValueString},
 };
-
-/// Box which uses allocator from LibC, used by Hivex to ensure
-/// correct deallocations.
-pub type LibCBox<T> = allocator_api2::boxed::Box<T, LibcAlloc>;
 
 /// Empty registry hive template
 ///
@@ -57,7 +86,7 @@ bitflags::bitflags! {
 	#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 	pub struct CommitFlags: std::ffi::c_int {}
 
-	/// Flags for [`Hive::node_set_value`]
+	/// Flags for [`node::SelectedNode::set_value`]
 	#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 	pub struct SetValueFlags: std::ffi::c_int {}
 }
@@ -218,4 +247,3 @@ fn win_filetime_to_primitive_datetime(win_time: i64) -> PrimitiveDateTime {
 		.checked_add(duration)
 		.expect("This should be a valid date")
 }
-

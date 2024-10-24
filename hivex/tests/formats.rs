@@ -9,7 +9,7 @@ fn multistring() {
 	let hive = TestHive::new(true).unwrap();
 	let root = hive.node(hive.root().unwrap());
 
-	let expected: Box<[&str]> = ["cat\0", "sus\0"].into();
+	let expected: Box<[&str]> = ["cat", "sus"].into();
 	root.set_value(SetValueFlags::default(), c"nyan", Value::MultiSz(expected.clone()))
 		.unwrap();
 

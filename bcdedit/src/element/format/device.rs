@@ -7,7 +7,7 @@ use {
 	uuid::Uuid,
 };
 
-type LibCVec<T> = allocator_api2::vec::Vec<T, hivex::alloc::LibcAlloc>;
+type LibCVec<T> = allocator_api2::vec::Vec<T, hivex::alloc::LibCAlloc>;
 
 #[binrw]
 #[brw(little)]
@@ -38,7 +38,7 @@ impl super::Format for DeviceFormat {
 		value.write(&mut writer).expect("Failed to write value");
 
 		// FIXME: don't copy
-		let mut new_bytes = LibCVec::new_in(hivex::alloc::LibcAlloc);
+		let mut new_bytes = LibCVec::new_in(hivex::alloc::LibCAlloc);
 		new_bytes.extend_from_slice(&writer.into_inner());
 		Value::Binary(new_bytes.into_boxed_slice())
 	}

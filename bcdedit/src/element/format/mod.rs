@@ -294,7 +294,7 @@ fn boxed_slice_try_call_with_as_mut_slice<T, U, E>(
 	let len = new_slice.len();
 
 	let new_vec = unsafe {
-		Vec::from_raw_parts_in(new_slice.as_mut_ptr(), len, len, hivex::alloc::LibcAlloc)
+		Vec::from_raw_parts_in(new_slice.as_mut_ptr(), len, len, hivex::alloc::LibCAlloc)
 	};
 
 	Ok(new_vec.into_boxed_slice())

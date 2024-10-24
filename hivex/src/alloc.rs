@@ -8,12 +8,16 @@ use {
 	},
 };
 
+/// Box which uses allocator from LibC, used by Hivex to ensure
+/// correct deallocations.
+pub type LibCBox<T> = allocator_api2::boxed::Box<T, LibCAlloc>;
+
 /// Proxy for [`libc_alloc::LibcAlloc`] to use with [`allocator_api2`]
 #[derive(Clone, Default)]
 #[repr(transparent)]
-pub struct LibcAlloc;
+pub struct LibCAlloc;
 
-unsafe impl Allocator for LibcAlloc {
+unsafe impl Allocator for LibCAlloc {
 	fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
 		let size = layout.size();
 		let ptr = unsafe { libc_alloc::LibcAlloc.alloc(layout) };

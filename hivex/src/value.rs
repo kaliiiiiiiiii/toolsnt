@@ -128,7 +128,7 @@ impl<'hive> SelectedValue<'hive> {
 		unsafe {
 			let data = sys::hivex_value_string(self.hive.as_handle(), self.handle.0);
 			check_pointer_null(data)?;
-			let c_str_len = CStr::from_ptr(data).to_bytes_with_nul().len();
+			let c_str_len = CStr::from_ptr(data).to_bytes().len();
 			Ok(boxed_str_from_ffi(data, c_str_len))
 		}
 	}
@@ -166,7 +166,7 @@ impl<'hive> SelectedValue<'hive> {
 					break;
 				}
 
-				let len = CStr::from_ptr(str_ptr).to_bytes_with_nul().len();
+				let len = CStr::from_ptr(str_ptr).to_bytes().len();
 				let str = boxed_str_from_ffi(str_ptr, len);
 				strings.push(str);
 				array_of_strings = array_of_strings.add(1);

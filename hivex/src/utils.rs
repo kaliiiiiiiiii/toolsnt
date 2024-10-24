@@ -1,5 +1,5 @@
 use {
-	crate::{alloc::LibcAlloc, LibCBox},
+	crate::{alloc::LibCAlloc, LibCBox},
 	std::ptr::NonNull,
 };
 
@@ -60,7 +60,7 @@ pub unsafe fn boxed_slice_from_ffi<T>(data: *mut T, len: usize) -> LibCBox<[T]> 
 	};
 
 	unsafe {
-		let vector = allocator_api2::vec::Vec::from_raw_parts_in(data, len, len, LibcAlloc);
+		let vector = allocator_api2::vec::Vec::from_raw_parts_in(data, len, len, LibCAlloc);
 		vector.into_boxed_slice()
 	}
 }
@@ -75,6 +75,6 @@ pub unsafe fn boxed_slice_from_ffi<T>(data: *mut T, len: usize) -> LibCBox<[T]> 
 pub unsafe fn boxed_str_from_ffi(data: *mut std::ffi::c_char, len: usize) -> LibCBox<str> {
 	unsafe {
 		let data = boxed_slice_from_ffi(data, len);
-		LibCBox::from_raw_in(LibCBox::into_raw(data) as *mut str, LibcAlloc)
+		LibCBox::from_raw_in(LibCBox::into_raw(data) as *mut str, LibCAlloc)
 	}
 }
