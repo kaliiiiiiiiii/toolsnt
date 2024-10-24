@@ -108,15 +108,15 @@ impl<'hive> SelectedValue<'hive> {
 
 		let value = match ty {
 			ValueType::None => Value::None,
-			ValueType::Sz => Value::Sz(self.downcast_string()?),
-			ValueType::ExpandSz => Value::ExpandSz(self.downcast_string()?),
-			ValueType::Binary => Value::Binary(self.downcast_binary()?),
-			ValueType::Dword | ValueType::DwordBe => Value::Dword(self.downcast_dword()),
-			ValueType::Link => Value::Link(self.downcast_string()?),
+			ValueType::Sz | ValueType::ExpandSz | ValueType::Link => {
+				Value::Sz(self.downcast_string()?)
+			}
 			ValueType::MultiSz => Value::MultiSz(self.downcast_multiple_strings()),
-			ValueType::ResourceList => todo!(),
-			ValueType::FullResourceDescriptor => todo!(),
-			ValueType::ResourceRequirementsList => todo!(),
+			ValueType::Binary
+			| ValueType::ResourceList
+			| ValueType::FullResourceDescriptor
+			| ValueType::ResourceRequirementsList => Value::Binary(self.downcast_binary()?),
+			ValueType::Dword | ValueType::DwordBe => Value::Dword(self.downcast_dword()),
 			ValueType::Qword => Value::Qword(self.downcast_qword()),
 		};
 
@@ -244,6 +244,12 @@ impl ValueType {
 }
 
 /// Converted registry value
+///
+/// # Data representation note
+/// Windows RegEdit itself shows [`Value::ResourceList`],
+/// [`Value::FullResourceDescriptor`] and [`Value::ResourceRequirementsList`] as
+/// plain bytes. I may try to reverse-engineer some inner structure and then
+/// support that. Until then, enjoy your bytes.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Value<Str> {
 	/// No defined value type
@@ -263,11 +269,11 @@ pub enum Value<Str> {
 	/// Multiple strings
 	MultiSz(Box<[Str]>),
 	/// Resource list
-	ResourceList(()),
+	ResourceList(LibCBox<[u8]>),
 	/// Resource descriptor
-	FullResourceDescriptor(()),
+	FullResourceDescriptor(LibCBox<[u8]>),
 	/// Resource requirements list
-	ResourceRequirementsList(()),
+	ResourceRequirementsList(LibCBox<[u8]>),
 	/// 64 bit integer
 	Qword(u64),
 }

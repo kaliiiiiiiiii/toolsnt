@@ -294,6 +294,7 @@ impl WimInfo {
 /// Each nonempty stream of each file in a WIM image is associated with a blob.
 /// Blobs are deduplicated within a WIM file.
 ///
+/// # Upstream library note
 /// TODO: this struct needs to be renamed, and perhaps made into a enum since
 /// there are several cases. I'll try to list them below:
 /// 1. The blob is "missing", meaning that it is referenced by hash but not
@@ -377,6 +378,7 @@ impl ResourceEntry {
 /// streams per file. In practice, this is a rarely used feature of the
 /// filesystem.
 ///
+/// # Upstream library note
 /// TODO: the library now explicitly tracks stream types, which allows it to
 /// have multiple unnamed streams (e.g. both a reparse point stream and unnamed
 /// data stream).

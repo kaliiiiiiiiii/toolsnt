@@ -182,19 +182,20 @@ impl SelectedNode<'_> {
 
 		// In most cases, just get pointer to the data
 		let (data, len) = match value {
-			Value::Sz(x) | Value::ExpandSz(x) | Value::Link(x) => {
-				// Requires special treatment, use separate function
-				return self.set_value_string(flags, &*c_key, ty, x);
-			}
-			Value::MultiSz(x) => return self.set_value_multistring(flags, &c_key, ty, &x),
 			Value::None => (std::ptr::null(), 0),
-			Value::Binary(x) => (x.as_ptr(), x.len()),
+			Value::Binary(x)
+			| Value::ResourceList(x)
+			| Value::FullResourceDescriptor(x)
+			| Value::ResourceRequirementsList(x) => (x.as_ptr(), x.len()),
 			Value::Dword(x) => ((&raw const x).cast(), size_of::<i32>()),
 			Value::DwordBe(x) => (addr_of!(x).cast(), size_of::<i32>()),
 			Value::Qword(x) => (addr_of!(x).cast(), size_of::<i64>()),
-			Value::ResourceList(_) => todo!(),
-			Value::FullResourceDescriptor(_) => todo!(),
-			Value::ResourceRequirementsList(_) => todo!(),
+
+			// Requires special treatment, use separate functions:
+			Value::Sz(x) | Value::ExpandSz(x) | Value::Link(x) => {
+				return self.set_value_string(flags, &*c_key, ty, x);
+			}
+			Value::MultiSz(x) => return self.set_value_multistring(flags, &c_key, ty, &x),
 		};
 
 		// Construct structure for setting value
@@ -268,7 +269,6 @@ impl SelectedNode<'_> {
 		ty: ValueType,
 		data: &[impl ValueString],
 	) -> std::io::Result<()> {
-		// todo: do not ignore error
 		let utf16_data: Box<_> = data
 			.iter()
 			.map(ValueString::to_utf16)
