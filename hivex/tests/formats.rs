@@ -21,7 +21,6 @@ fn multistring() {
 		panic!("Expected MultiSz");
 	};
 
-	// todo: Eh? make better.
 	for (expected, got) in expected.iter().zip(value) {
 		assert_eq!(*expected, &got[..]);
 	}

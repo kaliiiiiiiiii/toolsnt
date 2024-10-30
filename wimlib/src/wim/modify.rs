@@ -469,8 +469,6 @@ impl Image<'_> {
 		})
 	}
 
-	// TODO: Set basic information about WIM, `wim_set_wim_info`
-
 	/// Update a WIM image by adding, deleting and/or renaming files or
 	/// directories
 	///
@@ -478,7 +476,7 @@ impl Image<'_> {
 	/// changes will have been made to WIM.
 	///
 	/// # Error values
-	/// - [`Error::FveLockedVolume`]: Windows-only: One of the `add`` commands
+	/// - [`Error::FveLockedVolume`]: Windows-only: One of the `add` commands
 	///   attempted to add files from an encrypted BitLocker volume that hasn't
 	///   yet been unlocked
 	/// - [`Error::ImageHasMultipleReferences`]: There are currently multiple
@@ -565,15 +563,80 @@ pub struct UpdateCommand<'a> {
 }
 
 impl Debug for UpdateCommand<'_> {
-	fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		// TODO
-		Ok(())
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		match self.inner.op {
+			sys::wimlib_update_op_WIMLIB_UPDATE_OP_ADD => unsafe {
+				let variant = &self.inner.__bindgen_anon_1.add;
+				f.debug_struct("Add")
+					.field(
+						"add_flags",
+						&AddFlags::from_bits_truncate(variant.add_flags),
+					)
+					.field("fs_source_path", &TStr::from_ptr(variant.fs_source_path))
+					.field("wim_target_path", &TStr::from_ptr(variant.wim_target_path))
+					.field("config_file", &TStr::from_ptr_optional(variant.config_file))
+					.finish()
+			},
+			sys::wimlib_update_op_WIMLIB_UPDATE_OP_DELETE => unsafe {
+				let variant = &self.inner.__bindgen_anon_1.delete_;
+				f.debug_struct("Delete")
+					.field("wim_path", &TStr::from_ptr(variant.wim_path))
+					.field(
+						"delete_flags",
+						&DeleteFlags::from_bits_truncate(variant.delete_flags),
+					)
+					.finish()
+			},
+			sys::wimlib_update_op_WIMLIB_UPDATE_OP_RENAME => unsafe {
+				let variant = &self.inner.__bindgen_anon_1.rename;
+				f.debug_struct("Rename")
+					.field("wim_source_path", &TStr::from_ptr(variant.wim_source_path))
+					.field("wim_target_path", &TStr::from_ptr(variant.wim_target_path))
+					.field(
+						"rename_flags",
+						&RenameFlags::from_bits_truncate(variant.rename_flags),
+					)
+					.finish()
+			},
+			tag => unreachable!("Unknown tag: {tag}"),
+		}
 	}
 }
 
 impl PartialEq for UpdateCommand<'_> {
-	fn eq(&self, _other: &Self) -> bool {
-		false // TODO
+	fn eq(&self, other: &Self) -> bool {
+		if self.inner.op != other.inner.op {
+			return false;
+		}
+
+		match self.inner.op {
+			sys::wimlib_update_op_WIMLIB_UPDATE_OP_ADD => unsafe {
+				let this = &self.inner.__bindgen_anon_1.add;
+				let other = &self.inner.__bindgen_anon_1.add;
+
+				this.add_flags == other.add_flags
+					&& TStr::from_ptr_optional(this.config_file)
+						== TStr::from_ptr_optional(other.config_file)
+					&& TStr::from_ptr(this.fs_source_path) == TStr::from_ptr(this.fs_source_path)
+					&& TStr::from_ptr(this.wim_target_path) == TStr::from_ptr(other.wim_target_path)
+			},
+			sys::wimlib_update_op_WIMLIB_UPDATE_OP_DELETE => unsafe {
+				let this = &self.inner.__bindgen_anon_1.delete_;
+				let other = &other.inner.__bindgen_anon_1.delete_;
+
+				this.delete_flags == other.delete_flags
+					&& TStr::from_ptr(this.wim_path) == TStr::from_ptr(other.wim_path)
+			},
+			sys::wimlib_update_op_WIMLIB_UPDATE_OP_RENAME => unsafe {
+				let this = &self.inner.__bindgen_anon_1.rename;
+				let other = &self.inner.__bindgen_anon_1.rename;
+
+				this.rename_flags == other.rename_flags
+					&& TStr::from_ptr(this.wim_source_path) == TStr::from_ptr(other.wim_source_path)
+					&& TStr::from_ptr(this.wim_target_path) == TStr::from_ptr(other.wim_target_path)
+			},
+			_ => false,
+		}
 	}
 }
 
@@ -719,6 +782,7 @@ impl SetInfo {
 
 bitflags::bitflags! {
 	/// Flags related to operations of adding items to the WIM
+	#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 	pub struct AddFlags: std::ffi::c_int {
 		#[cfg(any(unix, doc))]
 		/// Directly capture an NTFS volume rather than a generic directory
@@ -771,6 +835,7 @@ bitflags::bitflags! {
 	}
 
 	/// Flags related to operations of deleting items from the WIM
+	#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 	pub struct DeleteFlags: std::ffi::c_int {
 		/// Do not issue an error if the path to delete does not exist
 		const FORCE     = sys::WIMLIB_DELETE_FLAG_FORCE     as _;
@@ -780,6 +845,7 @@ bitflags::bitflags! {
 	}
 
 	/// Flags related to exporting image to another WIM
+	#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 	pub struct ExportFlags: std::ffi::c_int {
 		/// If a single image is being exported, mark it bootable in the
 		/// destination WIM
@@ -824,6 +890,7 @@ bitflags::bitflags! {
 	}
 
 	/// Flags related to updating items in file
+	#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 	pub struct UpdateFlags: std::ffi::c_int {
 		/// Send [`ProgressMsg::UpdateBeginCommand`] and
 		/// [`ProgressMsg::UpdateEndCommand`]
@@ -831,8 +898,10 @@ bitflags::bitflags! {
 	}
 
 	/// Item rename flags – currently unused
+	#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 	pub struct RenameFlags: std::ffi::c_int {}
 
 	/// Reference template file flags – currently unused
+	#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 	pub struct ReferenceTemplateImageFlags: std::ffi::c_int {}
 }

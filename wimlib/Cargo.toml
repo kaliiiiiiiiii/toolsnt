@@ -14,9 +14,16 @@ wimlib-sys.path = "./sys"
 beef        = "0.5"
 bitflags    = "2.5"
 cfg-if      = "1.0"
-chrono      = "0.4"
 delegate    = "0.12"
 derive_more = "0.99"
 paste       = "1.0"
 uuid        = "1.8"
 widestring  = "1.1"
+
+[dependencies.time]
+version  = "0.3"
+features = ["macros"]
+
+[target.'cfg(windows)'.dependencies.windows]
+version  = "0.58"
+features = ["Win32_Security"]

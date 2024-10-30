@@ -3,10 +3,16 @@
 use {
 	super::{CompressionType, Image, ImageIndex, Wim},
 	crate::{error::result_from_raw, string::TStr, sys, Error},
-	chrono::{DateTime, Utc},
 	std::{
-		ffi, fmt::Debug, marker::PhantomData, mem::MaybeUninit, num::NonZero, ptr::null_mut, rc::Rc,
+		ffi,
+		fmt::Debug,
+		marker::PhantomData,
+		mem::MaybeUninit,
+		num::NonZero,
+		ptr::{null_mut, NonNull},
+		rc::Rc,
 	},
+	time::PrimitiveDateTime,
 	uuid::Uuid,
 	widestring::U16Str,
 };
@@ -489,6 +495,8 @@ pub struct DirEntry<'a> {
 	/// Depth of this directory entry, where 0 is the root, 1 is the root's
 	/// children, ..., etc
 	pub depth: usize,
+	/// Security descriptor for this file
+	pub security_descriptor: Option<win32_security_descriptor::SECURITY_DESCRIPTOR_RELATIVE>,
 	/// File attributes, such as whether the file is a directory or not
 	pub file_attributes: FileAttributes,
 	/// If the file is a reparse point ([`FileAttributes::REPARSE_POINT`] set in
@@ -501,11 +509,11 @@ pub struct DirEntry<'a> {
 	/// A unique identifier for this file's inode
 	pub hard_link_group_id: u64,
 	/// Time this file was created
-	pub creation_time: DateTime<Utc>,
+	pub creation_time: PrimitiveDateTime,
 	/// Time this file was last written to
-	pub last_write_time: DateTime<Utc>,
+	pub last_write_time: PrimitiveDateTime,
 	/// Time this file was last accessed
-	pub last_access_time: DateTime<Utc>,
+	pub last_access_time: PrimitiveDateTime,
 	/// The UNIX user ID of this file
 	pub unix_uid: u32,
 	/// The UNIX group ID of this file
@@ -551,11 +559,20 @@ impl<'a> DirEntry<'a> {
 			let last_access_time =
 				convert_timedate((*ffi).last_access_time, (*ffi).last_access_time_high);
 
+			let security_descriptor = NonNull::new(
+				(*ffi)
+					.security_descriptor
+					.cast::<win32_security_descriptor::SECURITY_DESCRIPTOR_RELATIVE>()
+					.cast_mut(),
+			)
+			.map(|ptr| ptr.read());
+
 			Self {
 				filename: TStr::from_ptr_optional((*ffi).filename),
 				short_name: TStr::from_ptr_optional((*ffi).dos_name),
 				full_path: TStr::from_ptr((*ffi).full_path),
 				depth: (*ffi).depth,
+				security_descriptor,
 				file_attributes,
 				reparse_tag: std::mem::transmute::<u32, ReparseTag>((*ffi).reparse_tag),
 				num_links: (*ffi).num_links,
@@ -713,12 +730,18 @@ pub enum ReparseTag {
 	Symlink = sys::WIMLIB_REPARSE_TAG_SYMLINK,
 }
 
-fn convert_timedate(timespec: sys::timespec, _high_secs: i32) -> DateTime<Utc> {
-	// TODO: Support 32-bit timestamp
-	let secs = timespec.tv_sec;
-	let nsecs = timespec.tv_nsec as u32;
+fn convert_timedate(timespec: sys::timespec, high_secs: i32) -> PrimitiveDateTime {
+	let seconds = if std::mem::size_of_val(&timespec.tv_sec) == std::mem::size_of::<i32>() {
+		let high_part = (high_secs as i64) << 32;
+		let low_part = timespec.tv_sec as i64;
+		high_part | low_part
+	} else {
+		timespec.tv_sec
+	};
 
-	DateTime::from_timestamp(secs, nsecs).expect("Valid time format from FFI")
+	let nanoseconds = timespec.tv_nsec;
+	let duration = time::Duration::new(seconds, nanoseconds as i32);
+	time::macros::datetime!(1970-01-01 0:00).saturating_add(duration)
 }
 
 /// Callback for [`Image::iterate_dir_tree`]
@@ -777,4 +800,32 @@ unsafe extern "C" fn iterate_lookup_table_trampoline(
 bitflags::bitflags! {
 	/// Flags for [`Wim::interate_lookup_table`]; empty, reserved for future use
 	pub struct IterateLookupTableFlags: ffi::c_int {}
+}
+
+/// Shim for Win32 Security Descriptor on non-Windows platforms
+#[cfg(not(windows))]
+pub mod win32_security_descriptor {
+	#![allow(non_camel_case_types, non_snake_case, missing_docs)]
+
+	#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+	#[repr(C)]
+	pub struct SECURITY_DESCRIPTOR_RELATIVE {
+		pub Revision: u8,
+		pub Sbz1: u8,
+		pub Control: SECURITY_DESCRIPTOR_CONTROL,
+		pub Owner: u32,
+		pub Group: u32,
+		pub Sacl: u32,
+		pub Dacl: u32,
+	}
+
+	#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+	#[repr(transparent)]
+	pub struct SECURITY_DESCRIPTOR_CONTROL(pub u16);
+}
+
+/// Contains re-exported Win32 Security Descriptor
+#[cfg(windows)]
+pub mod win32_security_descriptor {
+	pub use windows::Win32::Security::{SECURITY_DESCRIPTOR_CONTROL, SECURITY_DESCRIPTOR_RELATIVE};
 }

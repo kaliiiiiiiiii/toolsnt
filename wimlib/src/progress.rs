@@ -18,8 +18,6 @@
 //! You can now return [`ProgressStatus::Abort`] to cause the current operationg
 //! to be aborted.
 
-// TODO: INVESTIGATE UB!
-
 use {
 	crate::{string::TStr, sys, CompressionType, ImageIndex, UpdateCommand},
 	derive_more::{Deref, DerefMut},
