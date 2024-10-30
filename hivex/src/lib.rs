@@ -54,7 +54,7 @@ use {
 		ops::Deref,
 		path::Path,
 	},
-	time::{OffsetDateTime},
+	time::OffsetDateTime,
 	utils::{check_pointer_null, check_status_zero, wrap_handle},
 	value::{SelectedValue, ValueHandle},
 };
