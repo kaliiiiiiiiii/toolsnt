@@ -11,8 +11,7 @@ pub use {extract::*, info::*, initial::*, modify::*, non_standalone::*, write::*
 
 cfg_if! {
 	if #[cfg(any(feature = "mount", doc))] {
-		mod mount;
-		pub use mount::*;
+		pub mod mount;
 	}
 }
 

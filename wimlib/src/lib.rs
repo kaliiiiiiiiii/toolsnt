@@ -67,7 +67,7 @@
 //!
 //! # Additional information and features
 //! ## Mounting WIM images
-//! See [Mounting WIM images](crate::wim::mount).
+//! See [Mounting WIM images](`crate::wim::mount`).
 //!
 //! ## Progress Messages
 //! See [progress::ProgressMsg].
@@ -90,7 +90,7 @@
 //!
 //! ## Custom allocation functions
 //! WimLib allows settings custom allocator functions. I would really like to
-//! make [`wimlib`] bindings support this feature, especially by automatically
+//! make [`wimlib`][`crate`] bindings support this feature, especially by automatically
 //! hooking that to users global allocator, but…
 //! 1. It uses C-style allocation APIs, which are very basic compared to Rusts
 //!    and inherently incompatible. Rust's [allocation
