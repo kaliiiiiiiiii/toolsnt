@@ -82,19 +82,27 @@ impl Wim {
 	pub fn iterate_lookup_table(
 		&self,
 		flags: IterateLookupTableFlags,
-		callback: &mut IterateLookupTableCallback,
+		mut callback: impl FnMut(ResourceEntry) -> Result<(), Error>,
 	) -> Result<(), Error> {
-		let callback_thin_ptr: *mut *mut IterateLookupTableCallback =
-			&mut (callback as *mut _) as *mut _;
+		fn inner(
+			self_: &Wim,
+			flags: IterateLookupTableFlags,
+			callback: &mut IterateLookupTableCallback,
+		) -> Result<(), Error> {
+			let callback_thin_ptr: *mut *mut IterateLookupTableCallback =
+				&mut (callback as *mut _) as *mut _;
 
-		result_from_raw(unsafe {
-			sys::wimlib_iterate_lookup_table(
-				self.wimstruct,
-				flags.bits(),
-				Some(iterate_lookup_table_trampoline),
-				callback_thin_ptr.cast(),
-			)
-		})
+			result_from_raw(unsafe {
+				sys::wimlib_iterate_lookup_table(
+					self_.wimstruct,
+					flags.bits(),
+					Some(iterate_lookup_table_trampoline),
+					callback_thin_ptr.cast(),
+				)
+			})
+		}
+
+		inner(self, flags, &mut callback)
 	}
 
 	/// Print the header of the WIM file (intended for debugging only)
@@ -185,21 +193,30 @@ impl<'a> Image<'a> {
 		&self,
 		path: &TStr,
 		flags: IterateDirTreeFlags,
-		callback: &mut IterateDirTreeCallback,
+		mut callback: impl FnMut(DirEntry) -> Result<(), Error>,
 	) -> Result<(), Error> {
-		let callback_thin_ptr: *mut *mut IterateDirTreeCallback =
-			&mut (callback as *mut _) as *mut _;
+		fn inner<'cb>(
+			self_: &Image<'_>,
+			path: &TStr,
+			flags: IterateDirTreeFlags,
+			callback: &mut IterateDirTreeCallback<'_>,
+		) -> Result<(), Error> {
+			let callback_thin_ptr: *mut *mut IterateDirTreeCallback<'_> =
+				&mut (callback as *mut _) as *mut _;
 
-		result_from_raw(unsafe {
-			sys::wimlib_iterate_dir_tree(
-				self.wimstruct,
-				self.ffi_index(),
-				path.as_ptr(),
-				flags.bits(),
-				Some(iterate_dir_tree_trampoline),
-				callback_thin_ptr.cast(),
-			)
-		})
+			result_from_raw(unsafe {
+				sys::wimlib_iterate_dir_tree(
+					self_.wimstruct,
+					self_.ffi_index(),
+					path.as_ptr(),
+					flags.bits(),
+					Some(iterate_dir_tree_trampoline),
+					callback_thin_ptr.cast(),
+				)
+			})
+		}
+
+		inner(self, path, flags, &mut callback)
 	}
 }
 
@@ -226,6 +243,7 @@ macro_rules! gen_bitfield_bool_getters {
 /// file. In this case, fields that only make sense given a backing file are set
 /// to default values.
 #[doc(alias = "wimlib_wim_info")]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct WimInfo {
 	/// The globally unique identifier for this WIM
 	pub guid: Uuid,
@@ -250,6 +268,32 @@ pub struct WimInfo {
 	pub total_bytes: u64,
 
 	bitfield_attrs: sys::__BindgenBitfieldUnit<[u8; 4]>,
+}
+
+impl Debug for WimInfo {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		f.debug_struct("WimInfo")
+			.field("guid", &self.guid)
+			.field("image_count", &self.image_count)
+			.field("boot_index", &self.boot_index)
+			.field("wim_version", &self.wim_version)
+			.field("chunk_size", &self.chunk_size)
+			.field("part_number", &self.part_number)
+			.field("total_parts", &self.total_parts)
+			.field("compression_type", &self.compression_type)
+			.field("total_bytes", &self.total_bytes)
+			.field("has_integrity_table", &self.has_integrity_table())
+			.field("opened_from_file", &self.opened_from_file())
+			.field("is_readonly", &self.is_readonly())
+			.field("has_rpfiex", &self.has_rpfix())
+			.field("is_marked_readonly", &self.is_marked_readonly())
+			.field("spanned", &self.spanned())
+			.field("write_in_progress", &self.write_in_progress())
+			.field("metadata_only", &self.metadata_only())
+			.field("resource_only", &self.resource_only())
+			.field("pipable", &self.pipable())
+			.finish()
+	}
 }
 
 impl WimInfo {
@@ -308,7 +352,7 @@ impl WimInfo {
 ///    sha1_hash. This case can only occur with wimlib_iterate_dir_tree(), never
 ///    wimlib_iterate_lookup_table().
 #[doc(alias = "wimlib_resource_entry")]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct ResourceEntry {
 	/// If this blob is not missing, then this is the uncompressed size of this
 	/// blob in bytes
@@ -341,6 +385,37 @@ pub struct ResourceEntry {
 	/// If this blob is located in a solid WIM resource,
 	/// then this is the uncompressed size of that solid resource
 	pub raw_resource_uncompressed_size: u64,
+}
+
+impl Debug for ResourceEntry {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		f.debug_struct("ResourceEntry")
+			.field("uncompressed_size", &self.uncompressed_size)
+			.field("compressed_size", &self.compressed_size)
+			.field("offset", &self.offset)
+			.field("sha1_hash", &self.sha1_hash)
+			.field("part_number", &self.part_number)
+			.field("reference_count", &self.reference_count)
+			.field(
+				"raw_resource_offset_in_wim",
+				&self.raw_resource_offset_in_wim,
+			)
+			.field(
+				"raw_resource_compressed_size",
+				&self.raw_resource_compressed_size,
+			)
+			.field(
+				"raw_resource_uncompressed_size",
+				&self.raw_resource_uncompressed_size,
+			)
+			.field("is_compressed", &self.is_compressed())
+			.field("is_metadata", &self.is_metadata())
+			.field("is_free", &self.is_free())
+			.field("is_spanned", &self.is_spanned())
+			.field("is_missing", &self.is_missing())
+			.field("packed", &self.packed())
+			.finish()
+	}
 }
 
 impl ResourceEntry {
@@ -746,7 +821,7 @@ fn convert_timedate(timespec: sys::timespec, high_secs: i32) -> OffsetDateTime {
 
 /// Callback for [`Image::iterate_dir_tree`]
 #[doc(alias = "wimlib_iterate_dir_tree_callback_t")]
-type IterateDirTreeCallback = dyn FnMut(DirEntry) -> Result<(), Error>;
+type IterateDirTreeCallback<'a> = dyn FnMut(DirEntry) -> Result<(), Error> + 'a;
 
 unsafe extern "C" fn iterate_dir_tree_trampoline(
 	dentry: *const sys::wimlib_dir_entry,
@@ -780,7 +855,7 @@ bitflags::bitflags! {
 
 /// Callback for [`Wim::iterate_lookup_table`]
 #[doc(alias = "wimlib_iterate_lookup_table_callback_t")]
-type IterateLookupTableCallback = dyn FnMut(ResourceEntry) -> Result<(), Error>;
+type IterateLookupTableCallback<'a> = dyn FnMut(ResourceEntry) -> Result<(), Error> + 'a;
 
 unsafe extern "C" fn iterate_lookup_table_trampoline(
 	resource: *const sys::wimlib_resource_entry,
