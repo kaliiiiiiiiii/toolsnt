@@ -54,7 +54,7 @@ use {
 		ops::Deref,
 		path::Path,
 	},
-	time::PrimitiveDateTime,
+	time::{OffsetDateTime},
 	utils::{check_pointer_null, check_status_zero, wrap_handle},
 	value::{SelectedValue, ValueHandle},
 };
@@ -149,9 +149,9 @@ impl Hive {
 	}
 
 	/// Return the modification time from the header of the hive
-	pub fn last_modified(&self) -> PrimitiveDateTime {
+	pub fn last_modified(&self) -> OffsetDateTime {
 		let raw_wintime = unsafe { sys::hivex_last_modified(self.as_handle()) };
-		win_filetime_to_primitive_datetime(raw_wintime)
+		win_filetime_to_offset_datetime(raw_wintime)
 	}
 
 	/// Write changes to the hive.
@@ -247,14 +247,9 @@ impl Deref for BorrowedHive<'_> {
 	}
 }
 
-/// Convert Windows [File Time](https://learn.microsoft.com/en-us/windows/win32/sysinfo/file-times) to [`PrimitiveDateTime`]
-fn win_filetime_to_primitive_datetime(win_time: i64) -> PrimitiveDateTime {
-	let epoch_start = PrimitiveDateTime::new(
-		time::Date::from_ordinal_date(1601, 1)
-			.expect("Start date of Windows Epoch should be valid"),
-		time::Time::MIDNIGHT,
-	);
-
+/// Convert Windows [File Time](https://learn.microsoft.com/en-us/windows/win32/sysinfo/file-times) to [`OffsetDateTime`]
+fn win_filetime_to_offset_datetime(win_time: i64) -> OffsetDateTime {
+	let epoch_start = time::macros::datetime!(1601-01-01 0:00 UTC);
 	let duration = time::Duration::milliseconds(win_time / 10);
 	epoch_start
 		.checked_add(duration)

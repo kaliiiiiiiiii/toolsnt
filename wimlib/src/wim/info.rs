@@ -12,7 +12,7 @@ use {
 		ptr::{null_mut, NonNull},
 		rc::Rc,
 	},
-	time::PrimitiveDateTime,
+	time::OffsetDateTime,
 	uuid::Uuid,
 	widestring::U16Str,
 };
@@ -509,11 +509,11 @@ pub struct DirEntry<'a> {
 	/// A unique identifier for this file's inode
 	pub hard_link_group_id: u64,
 	/// Time this file was created
-	pub creation_time: PrimitiveDateTime,
+	pub creation_time: OffsetDateTime,
 	/// Time this file was last written to
-	pub last_write_time: PrimitiveDateTime,
+	pub last_write_time: OffsetDateTime,
 	/// Time this file was last accessed
-	pub last_access_time: PrimitiveDateTime,
+	pub last_access_time: OffsetDateTime,
 	/// The UNIX user ID of this file
 	pub unix_uid: u32,
 	/// The UNIX group ID of this file
@@ -730,7 +730,7 @@ pub enum ReparseTag {
 	Symlink = sys::WIMLIB_REPARSE_TAG_SYMLINK,
 }
 
-fn convert_timedate(timespec: sys::timespec, high_secs: i32) -> PrimitiveDateTime {
+fn convert_timedate(timespec: sys::timespec, high_secs: i32) -> OffsetDateTime {
 	let seconds = if std::mem::size_of_val(&timespec.tv_sec) == std::mem::size_of::<i32>() {
 		let high_part = (high_secs as i64) << 32;
 		let low_part = timespec.tv_sec as i64;
@@ -741,7 +741,7 @@ fn convert_timedate(timespec: sys::timespec, high_secs: i32) -> PrimitiveDateTim
 
 	let nanoseconds = timespec.tv_nsec;
 	let duration = time::Duration::new(seconds, nanoseconds as i32);
-	time::macros::datetime!(1970-01-01 0:00).saturating_add(duration)
+	OffsetDateTime::UNIX_EPOCH.saturating_add(duration)
 }
 
 /// Callback for [`Image::iterate_dir_tree`]

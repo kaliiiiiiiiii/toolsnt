@@ -11,7 +11,7 @@ use {
 		BorrowedHive, LibCBox, SetValueFlags,
 	},
 	std::{ffi::CStr, mem::size_of, ptr::addr_of},
-	time::PrimitiveDateTime,
+	time::OffsetDateTime,
 };
 
 /// A node handle
@@ -57,9 +57,9 @@ impl SelectedNode<'_> {
 	}
 
 	/// Return the modification time of the node
-	pub fn timestamp(&self) -> PrimitiveDateTime {
+	pub fn timestamp(&self) -> OffsetDateTime {
 		let raw = unsafe { sys::hivex_node_timestamp(self.hive.as_handle(), self.handle.0) };
-		crate::win_filetime_to_primitive_datetime(raw)
+		crate::win_filetime_to_offset_datetime(raw)
 	}
 
 	/// Return an owned slice of [`NodeHandle`] which are the subkeys (children)
