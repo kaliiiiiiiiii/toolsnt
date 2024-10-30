@@ -87,6 +87,28 @@
 //!
 //! See the documentation for the `–pipable` flag of `wimcapture` for more
 //! information about pipable WIMs.
+//!
+//! ## Custom allocation functions
+//! WimLib allows settings custom allocator functions. I would really like to
+//! make [`wimlib`] bindings support this feature, especially by automatically
+//! hooking that to users global allocator, but…
+//! 1. It uses C-style allocation APIs, which are very basic compared to Rusts
+//!    and inherently incompatible. Rust's [allocation
+//!    APIs][`std::alloc::GlobalAlloc`] require knowing
+//!    [`Layout`][`std::alloc::Layout`]. which includes alignment. `malloc`
+//!    requires only size. For dallocation memory, C's API is even more basic.
+//!    Just provide a pointer. No size, no alignment. This can be bypassed by
+//!    having some fixed alignment and allocating a bit more to store the size
+//!    information and return shifted pointer. Tried this and it lead me to…
+//!
+//! 2. `wimlib` calls `libc`'s `realpath`. That one allocates using `libc`'s
+//!    allocation facilities (`malloc`) but `wimlib` then deallocates the memory
+//!    by user provided deallocation function. And as my deallocation trick
+//!    shifted pointer back to the header and tried to read it, it made
+//!    Address-san sad (of course it did). I could possibly try to do evil
+//!    things like catch `SIGSEGV` and then try again with `libc::free`. Or
+//!    somehow hook the library and override `libc`'s allocation facilities. But
+//!    I am (at least for now) not willing to risk such fragile solution.
 
 #![forbid(unsafe_op_in_unsafe_fn)]
 #![deny(missing_docs)]
