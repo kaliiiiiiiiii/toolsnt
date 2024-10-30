@@ -1,8 +1,15 @@
+//! Represents a location (like disk, virtual disk image, …)
+//!
+//! # Rant
+//! After everything Microsoft has done we saw… this is probably the worst.
+//! Imagine having a structured key-value database and just shove encoded
+//! mysterious data structure in `REG_BINARY`.
+
 use {
-	super::FromHiveValueError,
+	super::format::{extract, Format, FromHiveValueError},
 	binrw::{binrw, BinRead, BinWrite, NullWideString},
-	error_stack::{bail, Result, ResultExt},
-	hivex::{value::Value, LibCBox},
+	error_stack::{Result, ResultExt},
+	hivex::{value::Value as HiveValue, LibCBox},
 	std::{borrow::Cow, ffi::CStr, io::Cursor},
 	uuid::Uuid,
 };
@@ -20,37 +27,13 @@ pub struct DeviceFormat {
 	pub device: Device,
 }
 
-impl super::Format for DeviceFormat {
-	type Get = Self;
-	type Set<'a> = Self;
-
-	fn from_hive_value(value: Value<LibCBox<str>>) -> Result<Self::Get, FromHiveValueError> {
-		let Value::Binary(bytes) = value else {
-			bail!(FromHiveValueError::TypeMismatch)
-		};
-
-		let mut reader = Cursor::new(bytes);
-		Self::read(&mut reader).change_context(FromHiveValueError::Format)
-	}
-
-	fn into_hive_value(value: Self::Set<'_>) -> Value<Cow<'_, CStr>> {
-		let mut writer = Cursor::new(vec![]);
-		value.write(&mut writer).expect("Failed to write value");
-
-		// FIXME: don't copy
-		let mut new_bytes = LibCVec::new_in(hivex::alloc::LibCAlloc);
-		new_bytes.extend_from_slice(&writer.into_inner());
-		Value::Binary(new_bytes.into_boxed_slice())
-	}
-}
-
 #[binrw]
 #[brw(little)]
 #[derive(Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Device {
 	#[brw(magic = 0x48_u64)]
-	Parition(Partition),
+	Partition(Partition),
 	#[brw(magic = 0x80_u64)]
 	File(#[brw(magic = 0x05_u32)] File),
 	#[brw(magic = 0x94_u64)]
@@ -142,7 +125,7 @@ pub struct Ramdisk {
 	#[bw(ignore)]
 	__: (),
 
-	// Mystery data
+	// Uncle Bill's Mystery Bytes
 	#[br(temp)]
 	#[bw(calc = [0; 19])]
 	__: [u8; 19],
@@ -151,9 +134,43 @@ pub struct Ramdisk {
 	pub file: File,
 }
 
+impl Format for DeviceFormat {
+	type Get = Self;
+	type Set<'a> = Self;
+
+	fn from_hive_value(value: HiveValue<LibCBox<str>>) -> Result<Self::Get, FromHiveValueError> {
+		let bytes = extract!(value, Binary)?;
+		let mut reader = Cursor::new(bytes);
+		Self::read(&mut reader).change_context(FromHiveValueError::Format)
+	}
+
+	fn into_hive_value(value: Self::Set<'_>) -> HiveValue<Cow<'_, CStr>> {
+		let mut writer = Cursor::new(vec![]);
+		value.write(&mut writer).expect("Failed to write value");
+
+		// hack: copies
+		let vector = writer.into_inner();
+		let mut new_bytes = LibCVec::with_capacity_in(vector.len(), hivex::alloc::LibCAlloc);
+		new_bytes.extend_from_slice(&vector);
+		HiveValue::Binary(new_bytes.into_boxed_slice())
+	}
+}
+
 #[cfg(test)]
 mod tests {
-	use {super::*, uuid::uuid};
+	use {super::*, assert2::check, uuid::uuid};
+
+	const GPT_DEV: Device = Device::Partition(Partition::Gpt {
+		disk: uuid!("39ab146a-7277-46fa-be32-a80dda14de23"),
+		partition: uuid!("6855e541-a1f1-479d-94bc-09ac08630a8b"),
+	});
+
+	const MBR_DEV: Device = Device::Partition(Partition::Mbr {
+		partition: 1,
+		disk: 0x0e8a4be6,
+	});
+
+	const IMAGE_PATH: &str = "\\Amogus.Bin";
 
 	#[test]
 	fn partition_gpt() {
@@ -162,20 +179,17 @@ mod tests {
 		let mut file = std::fs::File::open(path).unwrap();
 		let format = DeviceFormat::read(&mut file).unwrap();
 
-		assert_eq!(
-			format,
-			DeviceFormat {
-				additional_options: Uuid::nil(),
-				device: Device::Parition(Partition::Gpt {
-					partition: uuid!("6855e541-a1f1-479d-94bc-09ac08630a8b"),
-					disk: uuid!("39ab146a-7277-46fa-be32-a80dda14de23")
-				})
-			}
+		check!(
+			format
+				== DeviceFormat {
+					additional_options: Uuid::nil(),
+					device: GPT_DEV,
+				}
 		);
 
 		let mut writer = Cursor::new(vec![]);
 		format.write(&mut writer).unwrap();
-		assert_eq!(writer.into_inner(), std::fs::read(path).unwrap());
+		check!(writer.into_inner() == std::fs::read(path).unwrap());
 	}
 
 	#[test]
@@ -185,20 +199,17 @@ mod tests {
 		let mut file = std::fs::File::open(path).unwrap();
 		let format = DeviceFormat::read(&mut file).unwrap();
 
-		assert_eq!(
-			format,
-			DeviceFormat {
-				additional_options: Uuid::nil(),
-				device: Device::Parition(Partition::Mbr {
-					disk: 0x0e8a4be6,
-					partition: 1
-				})
-			}
+		check!(
+			format
+				== DeviceFormat {
+					additional_options: Uuid::nil(),
+					device: MBR_DEV
+				}
 		);
 
 		let mut writer = Cursor::new(vec![]);
 		format.write(&mut writer).unwrap();
-		assert_eq!(writer.into_inner(), std::fs::read(path).unwrap());
+		check!(writer.into_inner() == std::fs::read(path).unwrap());
 	}
 
 	#[test]
@@ -208,23 +219,20 @@ mod tests {
 		let mut file = std::fs::File::open(path).unwrap();
 		let format = DeviceFormat::read(&mut file).unwrap();
 
-		assert_eq!(
-			format,
-			DeviceFormat {
-				additional_options: Uuid::nil(),
-				device: Device::File(File {
-					device: Box::new(Device::Parition(Partition::Gpt {
-						partition: uuid!("6855e541-a1f1-479d-94bc-09ac08630a8b"),
-						disk: uuid!("39ab146a-7277-46fa-be32-a80dda14de23")
-					})),
-					path: NullWideString::from("\\Amogus.Bin"),
-				})
-			}
+		check!(
+			format
+				== DeviceFormat {
+					additional_options: Uuid::nil(),
+					device: Device::File(File {
+						device: Box::new(GPT_DEV),
+						path: NullWideString::from(IMAGE_PATH),
+					})
+				}
 		);
 
 		let mut writer = Cursor::new(vec![]);
 		format.write(&mut writer).unwrap();
-		assert_eq!(writer.into_inner(), std::fs::read(path).unwrap());
+		check!(writer.into_inner() == std::fs::read(path).unwrap());
 	}
 
 	#[test]
@@ -234,24 +242,21 @@ mod tests {
 		let mut file = std::fs::File::open(path).unwrap();
 		let format = DeviceFormat::read(&mut file).unwrap();
 
-		assert_eq!(
-			format,
-			DeviceFormat {
-				additional_options: uuid!("8e71a3c1-a8a2-493f-bebc-fdc2110ca739"),
-				device: Device::Ramdisk(Ramdisk {
-					file: File {
-						device: Box::new(Device::Parition(Partition::Gpt {
-							partition: uuid!("6855e541-a1f1-479d-94bc-09ac08630a8b"),
-							disk: uuid!("39ab146a-7277-46fa-be32-a80dda14de23")
-						})),
-						path: NullWideString::from("\\Amogus.Bin"),
-					}
-				})
-			}
+		check!(
+			format
+				== DeviceFormat {
+					additional_options: Uuid::nil(),
+					device: Device::Ramdisk(Ramdisk {
+						file: File {
+							device: Box::new(GPT_DEV),
+							path: NullWideString::from(IMAGE_PATH),
+						}
+					})
+				}
 		);
 
 		let mut writer = Cursor::new(vec![]);
 		format.write(&mut writer).unwrap();
-		assert_eq!(writer.into_inner(), std::fs::read(path).unwrap());
+		check!(writer.into_inner() == std::fs::read(path).unwrap());
 	}
 }

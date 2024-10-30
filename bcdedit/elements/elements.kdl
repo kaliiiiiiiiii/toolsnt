@@ -1,0 +1,542 @@
+category "library" {
+	enum "FirstMegabytePolicy" {
+		UseNone    0
+		UseAll     1
+		UsePrivate 2
+	}
+
+	enum "ConfigAccessPolicy" {
+		Default          0
+		DisallowMmConfig 1
+	}
+
+	enum "SiPolicy" {
+		Default 0
+		Enable  1
+		Disable 2
+	}
+
+	enum "GraphicsResolution" {
+		"1024x768" 0
+		"800x600"  1
+		"1024x600" 2
+	}
+
+	enum "BootErrorUx" {
+		Legacy   0
+		Standard 1
+		Simple   2
+	}
+
+	enum "BootMeasurementLogFormat" {
+		Default 0
+		Sha1    1
+	}
+
+	enum "DisplayRotation" {
+		"0"   0
+		"90"  1
+		"180" 2
+		"270" 3
+	}
+
+	enum "LinearAddress57Policy" {
+		Default 0
+		OptOut  1
+		OptIn   2
+	}
+
+	enum "DebuggerType" {
+		UseNone    0
+		UseAll     1
+		UsePrivate 2
+	}
+
+	enum "DebuggerStartPolicy" {
+		Active     0
+		AutoEnable 1
+		Disable    2
+	}
+
+	enum "DisplayMessage" {
+		Default             0
+		Resume              1
+		HyperV              2
+		Recovery            3
+		StartupRepair       4
+		SystemImageRecovery 5
+		CommandPrompt       6
+		SystemRestore       7
+		PushButtonReset     8
+	}
+
+	element 0x11000001 name="ApplicationDevice"
+	element 0x12000002 name="ApplicationPath"
+	element 0x12000004 name="Description"
+	element 0x12000005 name="Locale"
+	element 0x14000006 name="Inherit"
+	element 0x15000007 name="TruncatePhysicalMemory"
+	element 0x14000008 name="RecoverySequence"
+	element 0x16000009 name="AutoRecoveryEnabled"
+	element 0x1700000A name="BadMemoryList"
+	element 0x1600000B name="AllowBadMemoryAccess"
+	element 0x1500000C name="FirstMegabytePolicy"          enum=""
+	element 0x1500000D name="RelocatePhysicalMemory"
+	element 0x1500000F name="AvoidLowPhysicalMemory"
+	element 0x1600000F name="TraditionalKsegMappigns"
+	element 0x15000020 name="EmsEnabled"
+	element 0x15000022 name="EmsPort"
+	element 0x15000023 name="EmsBaudrate"
+	element 0x16000031 name="AttemptNonBcdStart"
+	element 0x16000040 name="DisplayAdvancedOptions"
+	element 0x16000041 name="DisplayOptionsEdit"
+	element 0x15000042 name="FveKeyRingAddress"
+	element 0x11000043 name="BsdLogDevice"
+	element 0x12000044 name="BsdLogPath"
+	element 0x16000045 name="BsdPreserveLog"
+	element 0x15000046 name="GraphicsModeDisabled"
+	element 0x15000047 name="ConfigAccessPolicy"           enum=""
+	element 0x16000048 name="DisableIntegrityChecks"
+	element 0x16000049 name="AllowPrereleaseSignatures"
+	element 0x1200004A name="FontPath"
+	element 0x1500004B name="SiPolicy"                     enum=""
+	element 0x1500004C name="FveBandId"
+	element 0x16000050 name="ConsoleExtendedInput"
+	element 0x15000051 name="InitialConsoleInput"
+	element 0x15000052 name="GraphicsResolution"           enum=""
+	element 0x16000053 name="RestartOnFailure"
+	element 0x16000054 name="GraphicsForceHighestMode"
+	element 0x16000060 name="IsolatedExecutionContext"
+
+	element 0x15000065 name="BootUxDisplayMessage"         enum=""
+	element 0x15000066 name="BootUxDisplayMessageOverride" enum="DisplayMessage"
+	element 0x16000067 name="BootUxLogoDisable"
+	element 0x16000068 name="BootUxTextDisable"
+	element 0x16000069 name="BootUxProgressDisable"
+	element 0x1600006A name="BootUxFadeDisable"
+	element 0x1600006B name="BootUxReservePoolDebug"
+	element 0x1600006C name="BootUxDisable"
+	element 0x1500006D name="BootUxFadeFrames"
+	element 0x1600006E name="BootUxDumpStats"
+	element 0x1600006F name="BootUxShowStats"
+	
+	element 0x16000071 name="MultiBootSystem"
+	element 0x16000072 name="ForceNoKeyboard"
+	element 0x16000073 name="AliasWindowsKey"
+	element 0x16000074 name="BootShutdownDisabled"
+	element 0x15000075 name="PerformaceFrequency"
+	element 0x15000076 name="SecureBootRawPolicy"
+	element 0x17000077 name="AllowedInMemorySettings"
+	element 0x16000078
+	element 0x15000079 name="BootUxTransitionTime"
+	element 0x1600007A name="MobileGraphics"
+	element 0x1600007B name="ForceFipsCrypto"
+	element 0x1500007D name="BootErrorUx"                  enum=""
+	element 0x1600007E name="AllowFlightSignatures"
+	element 0x1500007F name="BootMeasurementLogFormat"
+	element 0x15000080 name="DisplayRotation"              enum=""
+	element 0x15000081 name="LogControl"
+	element 0x16000082 name="NoFirmwareSync"
+	element 0x11000083
+	element 0x11000084 name="WindowsSystemDevice"
+	element 0x16000085
+	element 0x15000086
+	element 0x16000087 name="NumLockOn"
+	element 0x12000088 name="AdditionalCiPolicy"
+	element 0x15000088 name="LinearAddress57Policy"        enum=""
+	element 0x26000202 name="OneshotSkipFfuUpdate"
+	element 0x26000203 name="ForceFfu"
+	element 0x25000510 name="BootThreshold"
+	element 0x26000512 name="OffModeCharging"
+	element 0x25000AAA name="Bootflow"
+
+	element 0x16000010 name="DebuggerEnabled"
+	element 0x15000011 name="DebuggerType"                 enum=""
+	element 0x15000012 name="DebuggerSerialPortAddress"
+	element 0x15000013 name="DebuggerSerialPortNumber"
+	element 0x15000014 name="DebuggerSerialBaudRate"
+	element 0x15000015 name="Debugger1394Channel"
+	element 0x12000016 name="DebuggerUsbTargetName"
+	element 0x16000017 name="DebuggerNoUMEx"
+	element 0x15000018 name="DebuggerStartPolicy"          enum=""
+	element 0x12000019 name="DebuggerBusParameters"
+	element 0x1500001A name="DebuggerNetHostIp"
+	element 0x1500001B name="DebuggerNetPort"
+	element 0x1600001C name="DebuggerNetDhcp"
+	element 0x1200001D name="DebuggerNetKey"
+	element 0x1600001E name="DebuggerNetVm"
+	element 0x1200001F name="DebuggernetHostIpv6"
+}
+
+category "device" {
+	element 0x35000001 name="ImageOffset"
+	element 0x35000002 name="TftpClientPort"
+	element 0x31000003 name="SdiDevice"
+	element 0x32000004 name="SdiPath"
+	element 0x35000005 name="ImageLength"
+	element 0x36000006 name="ExportAsCd"
+	element 0x35000007 name="TftpBlockSize"
+	element 0x35000008 name="TftpWindowSize"
+	element 0x36000009 name="MulticastEnabled"
+	element 0x3600000A name="MulticastTftpFallback"
+	element 0x3600000B name="TftpVarWindow"
+	element 0x3600000C name="VhRamdiskBoot"
+	element 0x3500000D
+}
+
+category "application" {
+	enum "BootUxPolicy" {
+		Disabled 0
+		Basic    1
+		Standard 2
+	}
+
+	enum "BootMenuPolicy" {
+		Legacy   0
+		Standard 1
+	}
+
+	category "bootmgr" {
+		element 0x24000001 name="DisplayOrder"
+		element 0x24000002 name="BootSequence"
+		element 0x23000003 name="DefaultObject"
+		element 0x25000004 name="Timeout"
+		element 0x26000005 name="AttemptResume"
+		element 0x23000006 name="ResumeObject"
+		element 0x24000007 name="StartupSequence"
+		element 0x24000010 name="ToolsDisplayOrder"
+		element 0x26000020 name="DisplayBootMenu"
+		element 0x26000021 name="NoErrorDisplay"
+		element 0x21000022 name="BcdDevice"
+		element 0x22000023 name="BcdFilePath"
+		element 0x26000024 name="HormEnabled"
+		element 0x26000025 name="HiberRoot"
+		element 0x22000026 name="PasswordOverride"
+		element 0x22000027 name="PinpassPhraseOverride"
+		element 0x26000028 name="ProcessCustomActionsFirst"
+		element 0x2600002A
+		element 0x27000030 name="CustomActionsList"
+		element 0x26000031 name="PersistBootSequence"
+		element 0x26000032 name="SkipStartupSequence"
+
+		element 0x22000040 name="FveRecoveryUrl"
+		element 0x22000041 name="FveRecoveryMessage"
+		element 0x26000042 name="FveFlightBootMgr"
+		element 0x25000043 name="FveUnlockRetryCountV4"
+		element 0x25000044 name="FveUnlockRetryCountV6"
+		element 0x22000045 name="FveServerAddressV4"
+		element 0x22000046 name="FveServerAddressV6"
+		element 0x22000047 name="FveStationAddressV4"
+		element 0x22000048 name="FveStationAddressV6"
+		element 0x22000049 name="FveStationSubnetMaskV4"
+		element 0x2200004A name="FveStationPrefixV6"
+		element 0x2200004B name="FveGatewayV4"
+		element 0x2200004C name="FveGatewayV6"
+		element 0x2500004D name="FveTimeout"
+		element 0x2500004E name="FveRemotePortV4"
+		element 0x2500004F name="FveRemotePortV6"
+		element 0x25000050 name="FveStationPortV4"
+		element 0x25000051 name="FveStationPortV6"	
+	}
+
+	category "osloader" {
+		enum "NxPolicy" {
+			OptIn     0
+			OptOut    1
+			AlwaysOff 2
+			AlwaysOn  3
+		}
+
+		enum "PaePolicy" {
+			Default      0
+			ForceEnable  1
+			ForceDisable 2
+		}
+
+		// ↑ Microsoft… *sigh* ↓
+
+		enum "TpmBootEntropyPolicy" {
+			Default      0
+			ForceDisable 1
+			ForceEnable  2
+		}
+		
+		enum "X2ApicPolicy" {
+			Default 0
+			Disable 1
+			Enable  2
+		}
+
+		enum "ForceOffPolicy" {
+			Default      0
+			ForceDisable 1
+		}
+
+		enum "SafeBootPolicy" {
+			Minimal  0
+			Network  1
+			DsRepair 2
+		}
+
+		enum "TscSyncPolicy" {
+			Default  0
+			Legacy   1
+			Enhanced 2
+		}
+
+		enum "DriverLoadFailurePolicy" {
+			Fatal           0
+			UseErrorControl 1
+		}
+
+		enum "BootStatusPolicy" {
+			DisplayAllFailures     0
+			IgnoreAllFailures      1
+			IgnoreShutdownFailures 2
+		}
+
+		enum "DebugType" {
+			Serial 0
+			"1394" 1
+			None   2
+			Net    3
+		}
+
+		enum "VsmLaunchType" {
+			Off  0
+			Auto 1
+		}
+
+		enum "HypervisorIommuPolicy" {
+			Default 0
+			Enable  1
+			Disable 2
+		}
+
+		enum "WideBool" {
+			Disable 0
+			Enable  1
+		}
+
+		enum "HypervisorSchedulerType" {
+			Classic 0
+			Core    1
+			Root    2
+		}
+
+		enum "HypervisorPerfMon" {
+			System     0
+			Hypervisor 1
+		}
+
+		enum "HypervisorEnforcedCodeIntegrity" {
+			Disable 0
+			Enable  1
+			Strict  2
+		}
+
+		element 0x21000001 name="OsDevice"
+		element 0x22000002 name="SystemRoot"
+		element 0x23000003 name="AssociatedResumeObject"
+		element 0x26000004 name="StampDisks"
+		element 0x21000005
+		element 0x25000008
+		element 0x26000010 name="DetectKernelAndHal"
+		element 0x22000011 name="KernelPath"
+		element 0x22000012 name="HalPath"
+		element 0x22000013 name="DbgTransportPath"
+		element 0x25000020 name="NxPolicy"                        enum=""
+		element 0x25000021 name="PaePolicy"                       enum=""
+		element 0x26000022 name="WinPeMode"
+		element 0x26000024 name="DisableCrashAutoReboot"
+		element 0x26000025 name="UseLastGoodSettings"
+		element 0x26000026 name="DisableIntegrityChecks"
+		element 0x26000027 name="AllowPrereleaseSignatures"
+		element 0x26000030 name="NoLowMemory"
+		element 0x25000031 name="RemoveMemory"
+		element 0x25000032 name="IncreaseUserVa"
+		element 0x25000033 name="PerformaceDataMemory"
+		element 0x26000040 name="UseVgaDriver"
+		element 0x26000041 name="DisableBootDisplay"
+		element 0x26000042 name="DisableVesaBios"
+		element 0x26000043 name="DisableVgaMode"
+		element 0x25000050 name="ClusterModeAddressing"
+		element 0x26000051 name="UsePhysicalDestination"
+		element 0x25000052 name="RestrictApicCluster"
+		element 0x22000053 name="EvStore"
+		element 0x26000054 name="UseLegacyApicMode"
+		element 0x25000055 name="X2ApicPolicy"                    enum=""
+		element 0x26000060 name="UseBootProcessorOnly"
+		element 0x25000061 name="NumberOfProcessors"
+		element 0x26000062 name="ForceMaximumProcessors"
+		element 0x25000063 name="ProcessorConfigurationFlags"
+		element 0x26000064 name="MaximizeGroupsCreated"
+		element 0x26000065 name="ForceGroupAwareness"
+		element 0x25000066 name="GroupSize"
+		element 0x26000070 name="UseFirmwarePciSettings"
+		element 0x25000071 name="MsiPolicy"                       enum="ForceOffPolicy"
+		element 0x25000072 name="PciExpressPolicy"                enum="ForceOffPolicy"
+		element 0x25000080 name="SafeBoot"                        enum=""
+		element 0x26000081 name="SafeBootAlternativeShell"
+		element 0x26000090 name="BootLogInitialization"
+		element 0x26000091 name="VerboseObjectLoadMode"
+		element 0x260000A0 name="KernelDebuggerEnabled"
+		element 0x260000A1 name="DebuggerHalBreakpoint"
+		element 0x260000A2 name="UsePlatformClock"
+		element 0x260000A3 name="ForceLegacyPlatform"
+		element 0x260000A4 name="UsePlatformTick"
+		element 0x260000A5 name="DisableDynamicDick"
+		element 0x250000A6 name="TscSyncPolicy"                   enum=""
+		element 0x260000B0 name="EmsEnabled"
+		element 0x250000C0 name="ForceFailure"
+		element 0x250000C1 name="DriverLoadFailurePolicy"         enum=""
+		element 0x250000C2 name="BootMenuPolicy"                  enum=""
+		element 0x260000C3 name="AdvancedOptionsOneTime"
+		element 0x260000C4 name="EditOptionsOneTime"
+		element 0x250000E0 name="BootStatusPolicy"                enum=""
+		element 0x260000E1 name="DisableElamDrivers"
+
+		element 0x250000F0 name="LaunchType"
+		element 0x220000F1 name="Path"
+		element 0x260000F2 name="HypervisorDebuggerEnabled"
+		element 0x250000F3 name="HypervisorDebuggerType"          enum="DebugType"
+		element 0x250000F4 name="HypervisorDebuggerPortNumber"
+		element 0x250000F5 name="HypervisorDebuggerBaudrate"
+		element 0x250000F6 name="HypervisorDebuggerChannel1394"
+
+		element 0x250000F7 name="BootUxPolicy"                    enum=""
+
+		element 0x260000F8 name="HypervisorSlatDisabled"
+		element 0x220000F9 name="HypervisorDbgBusParams"
+		element 0x250000FA name="HypervisorNumProc"
+		element 0x250000FB name="HypervisorRootProcPerNode"
+		element 0x260000FC name="HypervisorUserLargeVtlb"
+		element 0x250000FD name="HypervisorDbgNetHostIp"
+		element 0x250000FE name="HypervisorDbgNetHostPort"
+		element 0x250000FF name="HypervisorDbgPages"
+
+		element 0x25000100 name="TpmBootEntropyPolicy"            enum=""
+
+		element 0x22000110 name="HypervisorDbgNetKey"
+		element 0x22000112 name="HypervisorProcutSkuType"
+		element 0x25000113 name="HypervisorRootProc"
+		element 0x26000114 name="HypervisorDbgNetDhcp"
+		element 0x25000115 name="HypervisorIommuPolicy"
+		element 0x26000116 name="HypervisorUseVApic"
+		element 0x22000117 name="HypervisorLoadOptions"
+		element 0x25000118 name="HypervisorMsrFilterPolicy"       enum="WideBool"
+		element 0x25000119 name="HypervisorMmioNxPolicy"          enum="WideBool"
+		element 0x2500011A name="HypervisorSchedulerType"         enum=""
+		element 0x2200011B name="HypervisorRootProcNumaCores"
+		element 0x2500011C name="HypervisorPerfMon"
+		element 0x2500011D name="HypervisorRootProcPerCode"
+		element 0x2200011E name="HypervisorRootProcNumaNodeLps"
+		element 0x25000144 name="HypervisorEnforcedCodeIntegrity" enum=""
+
+		element 0x25000120 name="XSavePolicy"
+		element 0x25000121 name="XSaveAddFeature0"
+		element 0x25000122 name="XSaveAddFeature1"
+		element 0x25000123 name="XSaveAddFeature2"
+		element 0x25000124 name="XSaveAddFeature3"
+		element 0x25000125 name="XSaveAddFeature4"
+		element 0x25000126 name="XSaveAddFeature5"
+		element 0x25000127 name="XSaveAddFeature6"
+		element 0x25000128 name="XSaveAddFeature7"
+		element 0x25000129 name="XSaveRemoveFeature"
+		element 0x2500012A name="XSaveProcessorsMask"
+		element 0x2500012B name="XSaveDisable"
+		element 0x25000130 name="FveClaimedDeviceLockCounter"
+
+		element 0x2500012C name="KernelDebuggerType"              enum="DebugType"
+		element 0x2200012D name="KernelDebuggerBusParameters" 
+		element 0x2500012E name="KernelDebuggerPortAddress"
+		element 0x2500012F name="KernelDebuggerPortNumber"
+		element 0x25000131 name="KernelDebuggerChannel1394"
+		element 0x22000132 name="KernelDebuggerUsbTargetName"
+		element 0x25000133 name="KernelDebuggerNetHostIp"
+		element 0x25000134 name="KernelDebuggerNetHostPort"
+		element 0x26000135 name="KernelDebuggerNetDhcp"
+		element 0x22000136 name="KernelDebuggerNetKey"
+
+		element 0x22000137 name="ImcHiveName"
+		element 0x21000138 name="ImcDevice"
+
+		element 0x25000139 name="KernelDebuggerBaudrate"
+
+		element 0x22000140 name="ManufacturingMode"
+		element 0x26000141 name="EventLoggingEnabled"
+		element 0x25000142 name="VsmLaunchType"                    enum=""
+		element 0x26000145 name="DtraceEnabled"
+		element 0x21000150 name="SystemDataDevice"
+		element 0x21000151 name="OsArcDevice"
+		element 0x21000152
+		element 0x21000153 name="OsDataDevice"
+		element 0x21000154 name="BspDevice"
+		element 0x21000155 name="BspFilePath"
+
+		element 0x22000156 name="KernelDebuggerNetHostIpV6"
+		element 0x22000161 name="KernelDebuggerNetHostPortV6"
+	}
+
+	category "resume" {
+		element 0x21000001 name="HiberFileDevice"
+		element 0x22000002 name="HiberFilePath"
+		element 0x26000003 name="UseCustomSettings"
+		element 0x26000004 name="X86PaeMode"
+		element 0x21000005 name="AssociatedOsDevice"
+		element 0x26000006 name="DebugOptionEnabled"
+		element 0x25000007 name="BootUxPolicy"       enum="BootUxPolicy"
+		element 0x25000008 name="BootMenuPolicy"     enum="BootMenuPolicy"
+		element 0x26000024 name="HromEnabled"
+	}
+
+	category "memdiag" {
+		enum "TestMix" {
+			Basic    0
+			Extended 1
+		}
+
+		enum "TestToFail" {
+			Stride          0
+			Mats            1
+			InverseCoupling 2
+			RandomPattern   3
+			Checkerboard    4
+		}
+
+		element 0x25000001 name="PassCount"
+		element 0x25000002 name="TestMix"            enum=""
+		element 0x25000003 name="FailureCount"
+		element 0x26000003 name="CacheEnabled"
+		element 0x25000004 name="TestToFail"         enum=""
+		element 0x26000004 name="FailuresEnabled"
+		element 0x26000005 name="CacheEnable"
+		element 0x25000005 name="StrideFailureCount"
+		element 0x25000006 name="InvcFailureCount"
+		element 0x25000007 name="MatsFailureCount"
+		element 0x25000008 name="RandFailureCount"
+		element 0x25000009 name="ChckrFailureCount"
+	}
+
+	category "ldr" {
+		element 0x22000001 name="BpbString"
+	}
+
+	category "startup" {
+		element 0x26000001 name="PxeSoftReboot"
+		element 0x22000002 name="PxeApplicationName"
+	}
+
+	category "bootapp" {
+		element 0x26000145 name="EnableBootDebugPolicy"
+		element 0x26000146 name="EnableBootOrderClean"
+		element 0x26000147 name="EnableDeviceId"
+		element 0x26000148 name="EnableFfuLoader"
+		element 0x26000149 name="EnableIuLoader"
+		element 0x2600014A name="EnableMassStorage"
+		element 0x2600014B name="EnableRpmbProvisioning"
+		element 0x2600014C name="EnableSecureBootPolicy"
+		element 0x2600014D name="EnableStartCharge"
+		element 0x2600014E name="EnableResetTpm"
+	}
+}

@@ -1,21 +1,23 @@
 [package]
 name    = "bcdedit"
-version = "0.1.0"
+version = "0.2.0-alpha.1"
 edition = "2021"
 
 [dependencies]
-hivex.path        = "../hivex"
+bcdedit-macros.path = "./macros"
+hivex.path          = "../hivex"
 
-allocator-api2    = "0.2"
-binrw             = "0.14"
-derive_more       = "0.99"
-error-stack       = "0.4"
-mycelium-bitfield = "0.1"
-uuid              = "1.8"
+allocator-api2 = "0.2"
+binrw          = "0.14"
+bytemuck       = "1.19"
+error-stack    = "0.5"
+num_enum       = "0.7"
+uuid           = "1.11"
+smallstr       = "0.3"
 
-[dependencies.bytemuck]
-version  = "1.15"
-features = ["extern_crate_std"]
+[dependencies.derive_more]
+version  = "1.0"
+features = ["debug", "display", "error"]
 
 [dev-dependencies]
-assert_matches = "1.5"
+assert2 = "0.3"

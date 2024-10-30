@@ -9,6 +9,7 @@ path = "src/main.rs"
 
 [dependencies]
 bcdedit.path = ".."
+hivex.path   = "../../hivex"
 
 clap = { version = "4.5", features = ["derive"] }
 uuid = "1.11"

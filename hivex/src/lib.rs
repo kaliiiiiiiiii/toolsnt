@@ -46,10 +46,17 @@ pub use {alloc::LibCBox, hivex_sys as sys, sys::VERSION};
 
 use {
 	node::{NodeHandle, SelectedNode},
-	std::{ffi::CStr, io::Write, marker::PhantomData, mem::ManuallyDrop, ops::Deref, path::Path},
+	std::{
+		ffi::{CStr, CString},
+		io::Write,
+		marker::PhantomData,
+		mem::ManuallyDrop,
+		ops::Deref,
+		path::Path,
+	},
 	time::PrimitiveDateTime,
 	utils::{check_pointer_null, check_status_zero, wrap_handle},
-	value::{SelectedValue, ValueHandle, ValueString},
+	value::{SelectedValue, ValueHandle},
 };
 
 /// Empty registry hive template
@@ -108,14 +115,20 @@ impl Hive {
 			file.write_all(EMPTY_HIVE_TEMPLATE)?;
 		}
 
-		let c_path = path.as_ref().as_os_str().as_encoded_bytes();
-		Self::open(c_path, flags)
+		Self::open(path, flags)
 	}
 
 	/// Opens a hive file for procession
-	pub fn open(path: impl ValueString, flags: OpenFlags) -> std::io::Result<Self> {
-		let path_c_str = path.into_c_string();
-		let handle = unsafe { sys::hivex_open(path_c_str.as_ptr(), flags.bits()) };
+	pub fn open(path: impl AsRef<Path>, flags: OpenFlags) -> std::io::Result<Self> {
+		let path_c_str = CString::new(
+			path.as_ref()
+				.to_owned()
+				.into_os_string()
+				.into_encoded_bytes(),
+		)
+		.map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidInput, e))?;
+
+		let handle = unsafe { sys::hivex_open(path_c_str.as_ptr().cast(), flags.bits()) };
 		check_pointer_null(handle)?;
 		Ok(Self(handle))
 	}

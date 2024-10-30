@@ -1,3 +1,13 @@
 [workspace]
 resolver = "2"
-members  = ["bcdedit", "bcdedit/cli", "hivex", "hivex/sys", "wimlib", "wimlib/sys"]
+members  = [
+	"bcdedit",
+	"bcdedit/cli",
+	"bcdedit/macros",
+
+	"hivex",
+	"hivex/sys",
+	
+	"wimlib",
+	"wimlib/sys",
+]

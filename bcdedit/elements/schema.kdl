@@ -1,0 +1,51 @@
+document {
+	info {
+
+		title       "Windows BCD Elements"
+		description "Listing of Windows Boot Configuration Data elements and their values"
+		author      "Erin <erin@erindesu.cz>"
+		license     "EUPL-v1.2"
+	}
+
+	node "category" \
+	     description="Category specifying to which object type(s) elements belong" \
+	{
+		children {
+			node "enum" description="Enumeration type for integer elements with pre-defined meaning" {
+				value description="Name of the enum" {
+					type "string"
+					min  1
+					max  1
+				}
+
+				children {
+					node description="Variant" {
+						value description="Integer repr" {
+							type   "number"
+							format "u64"
+							min    1
+							max    1
+						}
+					}
+				}
+			}
+
+			node "element" description="BCD Element" {
+				value description="ID" {
+					type   "number"
+					format "u32"
+					min    1
+					max    1
+				}
+
+				prop "name" \
+				     description="Friendly name of the value" \
+					 { type "string"; }
+
+				prop "enum" \
+				     description="Is integer type defined by enum of name (infered if empty)" \
+					 { type "string"; }
+			}
+		}
+	}
+}
