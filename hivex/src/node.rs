@@ -174,19 +174,20 @@ impl SelectedNode<'_> {
 		let ty = value.type_of();
 
 		// In most cases, just get pointer to the data
-		let (data, len) = match value {
+		let value = std::pin::pin!(value);
+		let (data, len) = match &*value {
 			Value::None => (std::ptr::null(), 0),
 			Value::Binary(x)
 			| Value::ResourceList(x)
 			| Value::FullResourceDescriptor(x)
-			| Value::ResourceRequirementsList(x) => (x.as_ptr(), x.len()),
-			Value::Dword(x) => ((&raw const x).cast(), size_of::<i32>()),
-			Value::DwordBe(x) => (addr_of!(x).cast(), size_of::<i32>()),
-			Value::Qword(x) => (addr_of!(x).cast(), size_of::<i64>()),
+			| Value::ResourceRequirementsList(x) => ((*x).as_ptr(), x.len()),
+			Value::Dword(x) => ((&raw const *x).cast(), size_of::<u32>()),
+			Value::DwordBe(x) => ((&raw const *x).cast(), size_of::<u32>()),
+			Value::Qword(x) => ((&raw const *x).cast(), size_of::<u64>()),
 
 			// Requires special treatment, use separate functions:
 			Value::Sz(x) | Value::ExpandSz(x) | Value::Link(x) => {
-				return self.set_value_string(flags, &*c_key, ty, &x);
+				return self.set_value_string(flags, &*c_key, ty, x);
 			}
 			Value::MultiSz(x) => return self.set_value_multistring(flags, &c_key, ty, &x),
 		};
