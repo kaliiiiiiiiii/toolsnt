@@ -167,6 +167,7 @@ dependencies = [
  "assert2",
  "bcdedit-macros",
  "binrw",
+ "bitflags",
  "bytemuck",
  "derive_more 1.0.0",
  "error-stack",

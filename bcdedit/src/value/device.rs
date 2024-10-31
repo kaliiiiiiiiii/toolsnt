@@ -18,7 +18,7 @@ type LibCVec<T> = allocator_api2::vec::Vec<T, hivex::alloc::LibCAlloc>;
 
 #[binrw]
 #[brw(little)]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DeviceFormat {
 	#[br(map = |arr: [u8; 16]| Uuid::from_bytes_le(arr))]
 	#[bw(map = |uuid| uuid.to_bytes_le())]
@@ -29,7 +29,7 @@ pub struct DeviceFormat {
 
 #[binrw]
 #[brw(little)]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Device {
 	#[brw(magic = 0x48_u64)]
@@ -43,7 +43,7 @@ pub enum Device {
 }
 
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Partition {
 	#[non_exhaustive]
@@ -83,9 +83,19 @@ pub enum Partition {
 	},
 }
 
+impl Partition {
+	pub fn mbr(disk: u32, partition: u32) -> Self {
+		Self::Mbr { partition, disk }
+	}
+
+	pub fn gpt(disk: Uuid, partition: Uuid) -> Self {
+		Self::Gpt { partition, disk }
+	}
+}
+
 #[binrw]
 #[non_exhaustive]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct File {
 	// This is probably NOT magic
 	// There should be one byte, but that one
@@ -117,7 +127,7 @@ pub struct File {
 }
 
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Ramdisk {
 	// Maybe mystery data
 	#[brw(magic = b"\x03")]
