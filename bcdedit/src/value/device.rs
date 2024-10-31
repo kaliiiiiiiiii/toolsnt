@@ -168,7 +168,7 @@ impl Format for DeviceFormat {
 
 #[cfg(test)]
 mod tests {
-	use {super::*, assert2::check, uuid::uuid};
+	use {super::*, assert2::check, std::io::Seek, uuid::uuid};
 
 	const GPT_DEV: Device = Device::Partition(Partition::Gpt {
 		disk: uuid!("39ab146a-7277-46fa-be32-a80dda14de23"),
@@ -181,6 +181,21 @@ mod tests {
 	});
 
 	const IMAGE_PATH: &str = "\\Amogus.Bin";
+
+	#[test]
+	fn encode_decode() {
+		let device = DeviceFormat {
+			additional_options: Uuid::nil(),
+			device: GPT_DEV,
+		};
+
+		let mut curosr = Cursor::new(vec![]);
+		device.write(&mut curosr).unwrap();
+		curosr.rewind().unwrap();
+		let read = DeviceFormat::read(&mut curosr).unwrap();
+
+		check!(read == device);
+	}
 
 	#[test]
 	fn partition_gpt() {
