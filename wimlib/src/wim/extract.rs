@@ -281,6 +281,7 @@ impl WimLib {
 
 bitflags::bitflags! {
 	/// Flags to configure extraction methods for [`Image`]
+	#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 	pub struct ExtractFlags: std::ffi::c_int {
 		/// Extract the image directly to an NTFS volume rather than a generic
 		/// directory

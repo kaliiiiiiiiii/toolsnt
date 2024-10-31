@@ -19,9 +19,9 @@
 //! to be aborted.
 
 use {
-	crate::{string::TStr, sys, CompressionType, ImageIndex, UpdateCommand},
+	crate::{string::TStr, sys, CompressionType, ExtractFlags, ImageIndex, UpdateCommand},
 	derive_more::{Deref, DerefMut},
-	std::{ffi, num::NonZero},
+	std::{ffi, fmt::Debug, num::NonZero},
 };
 
 /// Callback for progress
@@ -339,7 +339,7 @@ pub struct ExtractMsg<'a, Extras = ()> {
 	#[deref]
 	#[deref_mut]
 	pub extras: Extras,
-	extract_flags: u32,
+	extract_flags: ExtractFlags,
 }
 
 /// Extras for [`ExtractMsg`] of [`ProgressMsg::ExtractSpwmPartBegin`]
@@ -713,7 +713,7 @@ impl ExtractMsg<'_> {
 
 		Some(Self {
 			image,
-			extract_flags: payload.extract_flags,
+			extract_flags: ExtractFlags::from_bits(payload.extract_flags as _)?,
 			wimfile_name,
 			image_name,
 			target,
