@@ -317,6 +317,7 @@ pub enum ObjectCreationError {
 }
 
 #[derive(Clone, Copy, Debug, Display, Error, PartialEq, Eq)]
+#[display("Failed to create a new BCD store")]
 pub struct StoreCreationError;
 
 fn hex_of_u32(num: u32) -> SmallString<[u8; 8]> {

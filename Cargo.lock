@@ -183,6 +183,8 @@ version = "0.1.0"
 dependencies = [
  "bcdedit",
  "clap",
+ "derive_more 1.0.0",
+ "error-stack",
  "hivex",
  "uuid",
 ]
