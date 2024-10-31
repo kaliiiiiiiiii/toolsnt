@@ -10,7 +10,7 @@ use {
 		value::{Value, ValueHandle, ValueString, ValueType},
 		BorrowedHive, LibCBox, SetValueFlags,
 	},
-	std::{ffi::CStr, mem::size_of, ptr::addr_of},
+	std::{ffi::CStr, mem::size_of},
 	time::OffsetDateTime,
 };
 
