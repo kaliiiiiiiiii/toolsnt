@@ -23,7 +23,6 @@ pub struct DeviceFormat {
 	#[br(map = |arr: [u8; 16]| Uuid::from_bytes_le(arr))]
 	#[bw(map = |uuid| uuid.to_bytes_le())]
 	pub additional_options: Uuid,
-	#[brw(pad_before = 8)]
 	pub device: Device,
 }
 
@@ -32,11 +31,11 @@ pub struct DeviceFormat {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Device {
-	#[brw(magic = 0x48_u64)]
-	Partition(Partition),
-	#[brw(magic = 0x80_u64)]
+	#[brw(magic = 0x06_u64)]
+	Partition(#[brw(magic = 0x48_u64)] Partition),
+	#[brw(magic = b"\0\0\0\0\0\0\0\0\x80\0\0\0\0\0\0\0")]
 	File(#[brw(magic = 0x05_u32)] File),
-	#[brw(magic = 0x94_u64)]
+	#[brw(magic = b"\0\0\0\0\0\0\0\0\x94\0\0\0\0\0\0\0")]
 	Ramdisk(Ramdisk),
 	// #[brw(magic = 0xC6_u64)]
 	// LocateEx,
@@ -116,12 +115,6 @@ pub struct File {
 	#[bw(ignore)]
 	__: (),
 
-	#[brw(magic = 0x06_u32)]
-	#[br(temp)]
-	#[bw(ignore)]
-	__: (),
-
-	#[brw(pad_before = 4)]
 	pub device: Box<Device>,
 	pub path: NullWideString,
 }

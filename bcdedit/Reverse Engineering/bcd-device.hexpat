@@ -1,3 +1,5 @@
+// TODO: Fix device type tags according to Rust's structs
+
 namespace bcd_device {
 	import std.string;
 	import std.mem;
