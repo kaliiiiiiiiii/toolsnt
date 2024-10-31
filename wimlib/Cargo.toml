@@ -2,7 +2,17 @@
 name    = "wimlib"
 version = "0.1.0"
 edition = "2021"
-license = "EUPL-1.2"
+
+description = "(Hopefully) idomatic bindings to the wimlib library"
+repository  = "https://codeberg.org/erin/toolsnt"
+license     = "EUPL-1.2"
+categories  = ["api-bindings"]
+keywords    = [
+	"windows",
+	"wim",
+	"esd",
+	"installation"
+]
 
 [features]
 default = ["mount"]

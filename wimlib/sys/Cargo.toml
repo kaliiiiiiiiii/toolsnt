@@ -1,9 +1,13 @@
 [package]
-name   = "wimlib-sys"
+name    = "wimlib-sys"
 version = "0.1.0"
 edition = "2021"
+links   = "wimlib"
 
-[dependencies]
+description = "Raw and generated bindings to wimlib"
+repository  = "https://codeberg.org/erin/toolsnt"
+categories  = ["external-ffi-bindings"]
+license     = "EUPL-1.2"
 
 [build-dependencies]
 bindgen    = "0.69"
