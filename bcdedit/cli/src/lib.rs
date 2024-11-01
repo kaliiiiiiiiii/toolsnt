@@ -1,34 +1,51 @@
+pub mod cli;
+pub mod object;
+
 use {
-	clap::{Parser, Parser as _},
+	bcdedit::{Bcd, StoreFlags},
+	cli::{Cli, Ops},
 	derive_more::{Display, Error},
-	error_stack::Result,
-	std::path::PathBuf,
+	error_stack::{Result, ResultExt},
+	std::path::Path,
 };
-
-/// Command line tool for manipulating Windows Boot Configuration Data
-#[derive(Parser, Debug)]
-#[command(arg_required_else_help(true))]
-pub struct Cli {
-	/// Path to BCD hive to operate on
-	#[arg(short, long)]
-	pub store: PathBuf,
-
-	#[command(subcommand)]
-	pub ops: Ops,
-}
-
-#[derive(Parser, Debug)]
-pub enum Ops {
-	/// Initialize a new BCD Store
-	#[command(name = "--init", short_flag = 'I')]
-	Init,
-	/// Manipulate BCD elements
-	#[command(name = "--element", short_flag = 'E')]
-	Element,
-}
 
 #[derive(Debug, Display, Error, PartialEq, Eq)]
 pub enum ApplicationError {
 	#[display("BCD initialization failed")]
 	Init,
+	#[display("Object data retrieval/manipulation error")]
+	Object,
+}
+
+pub fn process_cli(cli: Cli) -> Result<(), ApplicationError> {
+	match cli.ops {
+		Ops::Init => init_bcd(&cli),
+		Ops::Object { uuid, ops } => {
+			object::object(cli.store, uuid, ops).change_context(ApplicationError::Object)
+		}
+	}
+}
+
+pub fn init_bcd(cli: &Cli) -> Result<(), ApplicationError> {
+	Bcd::create(&cli.store, StoreFlags::empty(), hivex::OpenFlags::empty())
+		.change_context(ApplicationError::Init)?;
+
+	eprintln!("BCD Store {:?} initialized", &cli.store);
+	Ok(())
+}
+
+fn open_store(path: impl AsRef<Path>, writable: bool) -> std::io::Result<Bcd> {
+	let flags = if writable {
+		hivex::OpenFlags::WRITE
+	} else {
+		hivex::OpenFlags::empty()
+	};
+
+	let hive = hivex::Hive::open(path, flags)?;
+	Bcd::from_hive(hive).ok_or_else(|| {
+		std::io::Error::new(
+			std::io::ErrorKind::InvalidData,
+			"Hive is not a valid BCD store",
+		)
+	})
 }

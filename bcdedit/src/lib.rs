@@ -47,7 +47,7 @@ impl Bcd {
 	) -> Result<Self, StoreCreationError> {
 		let hive = Hive::create(path.as_ref(), hive_flags | OpenFlags::WRITE)
 			.change_context(StoreCreationError)?;
-		
+
 		let root = hive.node(hive.root().change_context(StoreCreationError)?);
 
 		let description_node = root
@@ -83,12 +83,15 @@ impl Bcd {
 	pub fn flags(&self) -> StoreFlags {
 		let description = self.hive.node(self.description_node);
 		let flag_mask = |id, flag| {
-			description
+			if description
 				.get_value(id)
 				.map(|value_h| self.hive.value(value_h).downcast_dword() == 1)
 				.unwrap_or_default()
-				.then_some(flag)
-				.unwrap_or(StoreFlags::empty())
+			{
+				flag
+			} else {
+				StoreFlags::empty()
+			}
 		};
 
 		StoreFlags::empty()
@@ -136,7 +139,7 @@ impl Bcd {
 
 	/// Lookup and select object by UUID
 	pub fn object_lookup(&self, uuid: Uuid) -> Result<Option<Object>, ObjectRetrievalError> {
-		for handle in self.objects().to_vec() {
+		for handle in self.objects().iter().copied() {
 			let Ok(name) = self.hive.node(handle.0).name() else {
 				continue;
 			};

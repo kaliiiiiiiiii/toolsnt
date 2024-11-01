@@ -4,11 +4,11 @@ use knus::Decode;
 pub struct Category {
 	#[knus(argument)]
 	pub name: String,
-	#[knus(children(name="enum"))]
+	#[knus(children(name = "enum"))]
 	pub enums: Vec<Enum>,
-	#[knus(children(name="element"))]
+	#[knus(children(name = "element"))]
 	pub elements: Vec<Element>,
-	#[knus(children(name="category"))]
+	#[knus(children(name = "category"))]
 	pub subcategories: Vec<Self>,
 }
 
@@ -22,8 +22,8 @@ pub struct Enum {
 
 #[derive(Decode, Debug)]
 pub struct EnumVariant {
-    #[knus(node_name)]
-    pub name: String,
+	#[knus(node_name)]
+	pub name: String,
 	#[knus(argument)]
 	pub value: u64,
 }
@@ -39,7 +39,7 @@ pub struct Element {
 }
 
 pub fn decode(content: &str) -> Vec<Category> {
-	match knus::parse("<spec>", &content) {
+	match knus::parse("<spec>", content) {
 		Ok(spec) => spec,
 		Err(e) => {
 			panic!("{:?}", miette::Report::new(e))
