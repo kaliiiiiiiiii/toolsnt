@@ -1,7 +1,7 @@
 mod schema;
 
 use {
-	heck::ToShoutySnekCase,
+	heck::{ToKebabCase, ToShoutySnekCase},
 	proc_macro::TokenStream as TokenStream1,
 	proc_macro2::{Ident, Literal, Span, TokenStream},
 	quote::{format_ident, quote},
@@ -13,24 +13,49 @@ use {
 pub fn define_elements(ts: TokenStream1) -> TokenStream1 {
 	assert!(ts.is_empty(), "This macro doesn't take any parameters");
 
-	schema::decode(include_str!("../../elements/elements.kdl"))
+	let mut ctx = Context::default();
+	let categories = schema::decode(include_str!("../../elements/elements.kdl"))
 		.into_iter()
-		.map(map_category)
-		.collect::<TokenStream>()
-		.into()
+		.map(|category| map_category(&mut ctx, category))
+		.collect::<TokenStream>();
+
+	let match_inner = ctx.str_matchers;
+	quote! {
+		fn __element_from_str(string: &::std::primitive::str) -> ::std::option::Option<crate::elements::DynamicElement> {
+			match string {
+				#match_inner
+				_ => None,
+			}
+		}
+
+		#categories
+	}.into()
 }
 
-fn map_category(category: Category) -> TokenStream {
+#[derive(Default)]
+struct Context {
+	str_matchers: TokenStream,
+}
+
+fn map_category(ctx: &mut Context, category: Category) -> TokenStream {
+	let subcategories = category
+		.subcategories
+		.into_iter()
+		.map(|cat| map_category(ctx, cat))
+		.collect::<TokenStream>();
+
 	let name = ident(&category.name);
 	let enums = category.enums.into_iter().map(map_enum);
-	let elements = category.elements.into_iter().map(map_element);
-	let subcategories = category.subcategories.into_iter().map(map_category);
+	let elements = category
+		.elements
+		.into_iter()
+		.map(|e| map_element(&mut ctx.str_matchers, e));
 
 	quote! {
 		pub mod #name {
 			#(#enums)*
 			#(#elements)*
-			#(#subcategories)*
+			#subcategories
 		}
 	}
 }
@@ -57,19 +82,36 @@ fn map_enum(enum_: Enum) -> TokenStream {
 	}
 }
 
-fn map_element(element: Element) -> TokenStream {
+fn map_element(str_matchers: &mut TokenStream, element: Element) -> TokenStream {
 	// todo: Unknown elements
 	let Some(name) = element.name else {
 		return TokenStream::new();
 	};
 
-	let name = ident(&name.TO_SHOUTY_SNEK_CASE());
+	let ident = ident(&name.TO_SHOUTY_SNEK_CASE());
 	let id = Literal::u32_unsuffixed(element.id);
 
+	let matchers = str_matcher_patterns(name);
+	str_matchers.extend(quote! {
+		#(#matchers)|* => Some(crate::elements::DynamicElement(#id)),
+	});
+
 	quote! {
-		pub const #name: crate::elements::DynamicElement =
+		pub const #ident: crate::elements::DynamicElement =
 			crate::elements::DynamicElement(#id);
 	}
+}
+
+fn str_matcher_patterns(name: String) -> impl Iterator<Item = Literal> {
+	let kebab = name.to_kebab_case();
+	let snek = name.TO_SHOUTY_SNEK_CASE();
+
+	[
+		Literal::string(&name),
+		Literal::string(&kebab),
+		Literal::string(&snek),
+	]
+	.into_iter()
 }
 
 fn ident(string: &str) -> Ident {
