@@ -34,9 +34,9 @@ impl DynamicElement {
 impl Display for DynamicElement {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		if let Some(string) = self.name() {
-			f.write_str(&string)
+			f.write_str(string)
 		} else {
-			write!(f, "Unknown Element ({:x})", self.as_raw())
+			write!(f, "Unknown ({:x})", self.as_raw())
 		}
 	}
 }

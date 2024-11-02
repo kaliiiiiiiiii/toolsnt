@@ -2,8 +2,7 @@ use {
 	crate::{elements::DynamicElement, value::GetValue},
 	derive_more::{Display, Error},
 	error_stack::{Result, ResultExt},
-	hivex::{alloc::LibCAlloc, node::NodeHandle, BorrowedHive, Hive},
-	std::path::Iter,
+	hivex::{alloc::LibCAlloc, node::NodeHandle, BorrowedHive},
 };
 
 macro_rules! try_some {
@@ -30,6 +29,14 @@ impl<'hive> Elements<'hive> {
 			handles: self.handles,
 		}
 	}
+
+	pub fn len(&self) -> usize {
+		self.handles.len()
+	}
+
+	pub fn is_empty(&self) -> bool {
+		self.len() == 0
+	}
 }
 
 impl Iterator for Elements<'_> {
@@ -47,6 +54,16 @@ impl Iterator for Elements<'_> {
 pub struct ElementValuePairs<'hive> {
 	hive: BorrowedHive<'hive>,
 	handles: HandlesIter,
+}
+
+impl ElementValuePairs<'_> {
+	pub fn len(&self) -> usize {
+		self.handles.len()
+	}
+
+	pub fn is_empty(&self) -> bool {
+		self.len() == 0
+	}
 }
 
 impl<'hive> Iterator for ElementValuePairs<'hive> {

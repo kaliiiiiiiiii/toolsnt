@@ -195,7 +195,7 @@ impl<'a> Image<'a> {
 		flags: IterateDirTreeFlags,
 		mut callback: impl FnMut(DirEntry) -> Result<(), Error>,
 	) -> Result<(), Error> {
-		fn inner<'cb>(
+		fn inner(
 			self_: &Image<'_>,
 			path: &TStr,
 			flags: IterateDirTreeFlags,
@@ -808,6 +808,7 @@ pub enum ReparseTag {
 fn convert_timedate(timespec: sys::timespec, high_secs: i32) -> OffsetDateTime {
 	let seconds = if std::mem::size_of_val(&timespec.tv_sec) == std::mem::size_of::<i32>() {
 		let high_part = (high_secs as i64) << 32;
+		#[allow(clippy::unnecessary_cast)]
 		let low_part = timespec.tv_sec as i64;
 		high_part | low_part
 	} else {

@@ -146,7 +146,7 @@ impl Format for IntegerList {
 
 	fn into_hive_value(value: Self::Set<'_>) -> HiveValue<Cow<'_, CStr>> {
 		let bytes = unsafe {
-			std::slice::from_raw_parts(value.as_ptr().cast::<u8>(), value.len() * size_of::<u64>())
+			std::slice::from_raw_parts(value.as_ptr().cast::<u8>(), std::mem::size_of_val(value))
 		};
 
 		HiveValue::Binary(bytes.into())

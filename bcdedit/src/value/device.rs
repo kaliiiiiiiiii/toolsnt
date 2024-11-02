@@ -119,6 +119,12 @@ pub struct File {
 	pub path: NullWideString,
 }
 
+impl File {
+	pub fn new(device: Box<Device>, path: NullWideString) -> Self {
+		Self { device, path }
+	}
+}
+
 #[binrw]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Ramdisk {

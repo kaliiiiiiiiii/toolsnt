@@ -123,9 +123,9 @@ impl<'hive> Object<'hive> {
 	}
 }
 
-fn node_get_value<'hive>(
+fn node_get_value(
 	element: DynamicElement,
-	hive: BorrowedHive<'hive>,
+	hive: BorrowedHive<'_>,
 	node_h: NodeHandle,
 ) -> Result<Option<GetValue>, RetrievalError> {
 	let value_h = hive

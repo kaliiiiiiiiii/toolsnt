@@ -1,11 +1,18 @@
 use {
-	crate::{cli::ObjectOps, open_store},
-	bcdedit::object::typing::ObjectType,
+	crate::{cli::ObjectOps, open_store, CustomDisplay},
+	bcdedit::{
+		object::{typing::ObjectType, Object},
+		value::{
+			device::{Device, Partition},
+			format::DeviceFormat,
+			GetValue, Value,
+		},
+	},
 	derive_more::{Display, Error},
 	error_stack::{report, Result, ResultExt},
 	owo_colors::OwoColorize,
-	std::path::Path,
-	tabled::settings::object::Rows,
+	std::{fmt::Debug, path::Path},
+	tabled::Table,
 	uuid::Uuid,
 };
 
@@ -16,11 +23,15 @@ pub fn object(
 ) -> Result<(), ObjectManipulationError> {
 	match ops {
 		Some(_) => todo!(),
-		None => infodump(store_path, uuid),
+		None => with_single_object(store_path, uuid, |obj| println!("{}", CustomDisplay(&obj))),
 	}
 }
 
-fn infodump(store_path: impl AsRef<Path>, uuid: Uuid) -> Result<(), ObjectManipulationError> {
+pub fn with_single_object(
+	store_path: impl AsRef<Path>,
+	uuid: Uuid,
+	mut f: impl FnMut(Object),
+) -> Result<(), ObjectManipulationError> {
 	let store = open_store(store_path, false).change_context(ObjectManipulationError::StoreOpen)?;
 	let obj = store
 		.object_lookup(uuid)
@@ -29,15 +40,7 @@ fn infodump(store_path: impl AsRef<Path>, uuid: Uuid) -> Result<(), ObjectManipu
 			report!(ObjectManipulationError::ObjectLookup).attach_printable("Object was not found")
 		})?;
 
-	println!("{} {}", "Object:".bold(), uuid.as_hyphenated());
-	print_object_type(obj.type_());
-	println!("\n{}", "Elements:".underline().bold());
-
-	// hack: Temporaty solution (they are often permanent)
-	for (key, value) in obj.elements().with_values().flatten() {
-		println!("{}{} {value:?}", key.bold(), ":".bold());
-	}
-
+	f(obj);
 	Ok(())
 }
 
@@ -49,50 +52,159 @@ pub enum ObjectManipulationError {
 	ObjectLookup,
 }
 
-fn print_object_type(type_: ObjectType) {
-	use bcdedit::object::typing::{ApplicationType, ImageType, InheritType};
-	match type_ {
-		ObjectType::Application { image, app_type } => {
-			let image = match image {
-				ImageType::Firmware => "Firmware",
-				ImageType::WindowsBoot => "Windows Loader",
-				ImageType::LegacyLoader => "NTLDR",
-				ImageType::RealMode => "Real-mode",
-			};
+impl Display for CustomDisplay<'_, Object<'_>> {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		// Print header and object info
+		writeln!(
+			f,
+			"{}{}\n{}{}\n\n{}",
+			"Object: ".bold().underline(),
+			self.0.uuid().bold().underline(),
+			"Type: ".bold(),
+			CustomDisplay(&self.0.type_()),
+			"Elements:".bold(),
+		)?;
 
-			let app_type = match app_type {
-				ApplicationType::FwBootMgr => "Windows Boot Manager (UEFI)",
-				ApplicationType::BootMgr => "Windows Boot Manager",
-				ApplicationType::OsLoader => "Windows Boot Loader",
-				ApplicationType::Resume => "Windows Resume Application",
-				ApplicationType::MemDiag => "Windows Memory Tester",
-				ApplicationType::NtLdr => "NTLDR",
-				ApplicationType::SetupLdr => "Windows Setup",
-				ApplicationType::BootSector => "Real-mode Application",
-				ApplicationType::Startup => "Startup",
-				ApplicationType::BootApp => "UEFI Application",
-				ApplicationType::Unknown => "?",
-			};
+		let elements = self.0.elements();
 
-			println!(
-				"{} Application\n├─ {} {image}\n╰─ {} {app_type}",
-				"Type:".bold(),
-				"Image Type:".bold(),
-				"App Type:".bold()
-			)
+		let mut elements_table = Table::new(
+			elements
+				.with_values()
+				.flatten()
+				.map(|(k, v)| (k.to_string(), CustomDisplay(&v).to_string())),
+		);
+
+		let elements_table = elements_table.with(tabled::settings::Style::blank()).with(
+			tabled::settings::Disable::row(tabled::settings::object::Rows::first()),
+		);
+
+		writeln!(f, "{elements_table}")?;
+
+		Ok(())
+	}
+}
+
+impl Display for CustomDisplay<'_, ObjectType> {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		use bcdedit::object::typing::{ApplicationType, ImageType, InheritType};
+		match self.0 {
+			ObjectType::Application { image, app_type } => {
+				let image = match image {
+					ImageType::Firmware => "Firmware",
+					ImageType::WindowsBoot => "Windows Loader",
+					ImageType::LegacyLoader => "NTLDR",
+					ImageType::RealMode => "Real-mode",
+				};
+
+				let app_type = match app_type {
+					ApplicationType::FwBootMgr => "Windows Boot Manager (UEFI)",
+					ApplicationType::BootMgr => "Windows Boot Manager",
+					ApplicationType::OsLoader => "Windows Boot Loader",
+					ApplicationType::Resume => "Windows Resume Application",
+					ApplicationType::MemDiag => "Windows Memory Tester",
+					ApplicationType::NtLdr => "NTLDR",
+					ApplicationType::SetupLdr => "Windows Setup",
+					ApplicationType::BootSector => "Real-mode Application",
+					ApplicationType::Startup => "Startup",
+					ApplicationType::BootApp => "UEFI Application",
+					ApplicationType::Unknown => "?",
+				};
+
+				write!(
+					f,
+					"Application\n├─ {} {image}\n╰─ {} {app_type}",
+					"Image Type:".bold(),
+					"App Type:".bold()
+				)
+			}
+			ObjectType::Inherit(inherit_type) => {
+				let inherit_type = match inherit_type {
+					InheritType::Any => "Any Object",
+					InheritType::Application => "Applications",
+					InheritType::Device => "Devices",
+				};
+				write!(f, "Inherit\n╰─ {} {inherit_type}", "For:".bold())
+			}
+			ObjectType::Device => f.write_str("Device"),
 		}
-		ObjectType::Inherit(inherit_type) => {
-			let inherit_type = match inherit_type {
-				InheritType::Any => "Any Object",
-				InheritType::Application => "Applications",
-				InheritType::Device => "Devices",
-			};
-			println!(
-				"{} Inherit\n╰─ {} {inherit_type}",
-				"Type:".bold(),
-				"For:".bold()
-			)
+	}
+}
+
+impl Display for CustomDisplay<'_, GetValue<'_>> {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		match &self.0 {
+			Value::Device(dev) => Display::fmt(&CustomDisplay(dev), f),
+			Value::String(string) => f.write_str(string),
+			Value::Guid(uuid) => Display::fmt(&uuid.braced(), f),
+			Value::GuidList(_) => f.write_str("TODO!"),
+			Value::Integer(int) => Display::fmt(int, f),
+			Value::Bool(boolean) => Display::fmt(boolean, f),
+			Value::IntegerList(list) => Debug::fmt(list, f),
 		}
-		ObjectType::Device => println!("{} Device", "Type:".bold()),
+	}
+}
+
+impl Display for CustomDisplay<'_, DeviceFormat> {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		let has_additional_options = !self.0.additional_options.is_nil();
+		device_tree_fmt(f, &self.0.device, 0, has_additional_options)?;
+
+		if has_additional_options {
+			write!(f, "\n╰─ Options: {}", self.0.additional_options.braced())?;
+		}
+
+		Ok(())
+	}
+}
+
+fn device_tree_fmt(
+	f: &mut std::fmt::Formatter<'_>,
+	device: &Device,
+	level: usize,
+	has_extra: bool,
+) -> std::fmt::Result {
+	let terminal_sign = if has_extra { "├─" } else { "╰─" };
+	match device {
+		Device::Partition(partition) => {
+			match partition {
+				Partition::Mbr {
+					partition, disk, ..
+				} => write!(
+					f,
+					"Partition (MBR)\n{indent}├─ Disk: {disk:x?}\n{indent}╰─ Partition: {partition:x?}",
+					indent = Indent(level),
+				),
+				Partition::Gpt {
+					partition, disk, ..
+				} => write!(
+					f,
+					"Partition (GPT)\n{indent}├─ Disk: {}\n{indent}╰─ Partition: {}",
+					disk.braced(),
+					partition.braced(),
+					indent = Indent(level),
+				),
+				_ => f.write_str("<unknown partition>"),
+			}?;
+		}
+		Device::File(file) => {
+			write!(
+				f,
+				"File\n{indent}├─ Path: {}\n{indent}{terminal_sign} In: ",
+				file.path,
+				indent = Indent(level)
+			)?;
+			device_tree_fmt(f, &file.device, level + 1, false)?;
+		}
+		Device::Ramdisk(_ramdisk) => f.write_str("Ramdisk <todo>")?,
+		_ => f.write_str("<unknown>")?,
+	}
+
+	Ok(())
+}
+
+struct Indent(usize);
+impl Display for Indent {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		std::iter::repeat_n("   ", self.0).try_for_each(|string| f.write_str(string))
 	}
 }

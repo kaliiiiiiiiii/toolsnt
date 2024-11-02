@@ -23,6 +23,7 @@ pub fn process_cli(cli: Cli) -> Result<(), ApplicationError> {
 		Ops::Object { uuid, ops } => {
 			object::object(cli.store, uuid, ops).change_context(ApplicationError::Object)
 		}
+		Ops::List { info, descriptions } => list_objects(cli.store, info, descriptions),
 	}
 }
 
@@ -31,6 +32,28 @@ pub fn init_bcd(cli: &Cli) -> Result<(), ApplicationError> {
 		.change_context(ApplicationError::Init)?;
 
 	eprintln!("BCD Store {:?} initialized", &cli.store);
+	Ok(())
+}
+
+pub fn list_objects(
+	path: impl AsRef<Path>,
+	info: bool,
+	descriptions: bool,
+) -> Result<(), ApplicationError> {
+	let store = open_store(path, false).change_context(ApplicationError::Object)?;
+	if !descriptions {
+		for object_h in store.objects().iter() {
+			let object = store.object(*object_h).unwrap();
+			if info {
+				println!("{}", CustomDisplay(&object));
+			} else {
+				println!("{}", object.uuid());
+			}
+		}
+	} else {
+		todo!("List with descriptions")
+	}
+
 	Ok(())
 }
 
@@ -49,3 +72,7 @@ fn open_store(path: impl AsRef<Path>, writable: bool) -> std::io::Result<Bcd> {
 		)
 	})
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(transparent)]
+pub struct CustomDisplay<'a, T>(&'a T);

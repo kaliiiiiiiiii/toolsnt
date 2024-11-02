@@ -14,12 +14,23 @@ pub struct Cli {
 
 #[derive(Parser, Debug)]
 pub enum Ops {
-	/// Initialize a new BCD Store
+	/// Initialize a new BCD store
 	#[command(name = "--init", short_flag = 'I')]
 	Init,
+	/// Enumerate objects in BCD store
+	#[command(name = "--list", short_flag = 'L')]
+	List {
+		/// Show details about the objects
+		#[arg(short, long)]
+		info: bool,
+		/// Show object descriptions
+		#[arg(short, long, conflicts_with = "info")]
+		descriptions: bool,
+	},
 	/// Manipulate BCD objects
 	#[command(name = "--object", short_flag = 'O')]
 	Object {
+		/// Object's UUID
 		uuid: Uuid,
 		#[command(subcommand)]
 		ops: Option<ObjectOps>,
