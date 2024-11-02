@@ -1,7 +1,8 @@
 use {
 	crate::value::Type,
 	derive_more::Debug,
-	num_enum::{IntoPrimitive, TryFromPrimitive}, std::str::FromStr,
+	num_enum::{IntoPrimitive, TryFromPrimitive},
+	std::str::FromStr,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, TryFromPrimitive, IntoPrimitive)]
@@ -23,6 +24,10 @@ impl DynamicElement {
 
 	pub const fn as_raw(self) -> u32 {
 		self.0
+	}
+
+	pub const fn name(&self) -> Option<&'static str> {
+		__element_to_str(self.as_raw())
 	}
 }
 

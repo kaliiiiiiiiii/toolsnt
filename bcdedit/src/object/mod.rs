@@ -1,3 +1,4 @@
+pub mod elements_iter;
 pub mod typing;
 
 use {
@@ -33,7 +34,7 @@ impl Debug for Object<'_> {
 	}
 }
 
-impl Object<'_> {
+impl<'hive> Object<'hive> {
 	/// Get object's UUID
 	pub const fn uuid(&self) -> &Uuid {
 		&self.uuid
@@ -46,8 +47,8 @@ impl Object<'_> {
 
 	/// Set a [`Value`] in BCD
 	///
-	/// Do not forget to commit the BCD to save the changes by [`crate::Bcd::commit`].
-	/// # Warning
+	/// Do not forget to commit the BCD to save the changes by
+	/// [`crate::Bcd::commit`]. # Warning
 	/// Object type checking is not yet done. Setting element not belonging to
 	/// format of this object may lead to unexpected behaviour.
 	pub fn set(&self, element: DynamicElement, value: SetValue) -> Result<(), SetError> {
@@ -140,6 +141,14 @@ impl Object<'_> {
 		}
 		.map(Some)
 		.change_context(RetrievalError::FromHiveValue)
+	}
+
+	pub fn elements(&self) -> elements_iter::Elements<'hive> {
+		let handles = self.elements.children().into_vec().into_iter();
+		elements_iter::Elements {
+			hive: self.elements.hive(),
+			handles,
+		}
 	}
 }
 

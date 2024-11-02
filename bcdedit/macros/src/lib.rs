@@ -19,12 +19,20 @@ pub fn define_elements(ts: TokenStream1) -> TokenStream1 {
 		.map(|category| map_category(&mut ctx, category))
 		.collect::<TokenStream>();
 
-	let match_inner = ctx.str_matchers;
+	let str_inner = ctx.str_matchers;
+	let id_inner = ctx.id_matchers;
 	quote! {
 		fn __element_from_str(string: &::std::primitive::str) -> ::std::option::Option<crate::elements::DynamicElement> {
 			match string {
-				#match_inner
-				_ => None,
+				#str_inner
+				_ => ::core::option::Option::None,
+			}
+		}
+
+		const fn __element_to_str(id: u32) -> ::std::option::Option<&'static ::std::primitive::str> {
+			match id {
+				#id_inner
+				_ => ::core::option::Option::None,
 			}
 		}
 
@@ -35,6 +43,7 @@ pub fn define_elements(ts: TokenStream1) -> TokenStream1 {
 #[derive(Default)]
 struct Context {
 	str_matchers: TokenStream,
+	id_matchers: TokenStream,
 }
 
 fn map_category(ctx: &mut Context, category: Category) -> TokenStream {
@@ -49,7 +58,7 @@ fn map_category(ctx: &mut Context, category: Category) -> TokenStream {
 	let elements = category
 		.elements
 		.into_iter()
-		.map(|e| map_element(&mut ctx.str_matchers, e));
+		.map(|e| map_element(&mut ctx.str_matchers, &mut ctx.id_matchers, e));
 
 	quote! {
 		pub mod #name {
@@ -82,7 +91,11 @@ fn map_enum(enum_: Enum) -> TokenStream {
 	}
 }
 
-fn map_element(str_matchers: &mut TokenStream, element: Element) -> TokenStream {
+fn map_element(
+	str_matchers: &mut TokenStream,
+	id_matchers: &mut TokenStream,
+	element: Element,
+) -> TokenStream {
 	// todo: Unknown elements
 	let Some(name) = element.name else {
 		return TokenStream::new();
@@ -91,9 +104,14 @@ fn map_element(str_matchers: &mut TokenStream, element: Element) -> TokenStream 
 	let ident = ident(&name.TO_SHOUTY_SNEK_CASE());
 	let id = Literal::u32_unsuffixed(element.id);
 
+	id_matchers.extend(quote! {
+		#id => ::core::option::Option::Some(#name),
+	});
+
 	let matchers = str_matcher_patterns(name);
 	str_matchers.extend(quote! {
-		#(#matchers)|* => Some(crate::elements::DynamicElement(#id)),
+		#(#matchers)|* =>
+			::core::option::Option::Some(crate::elements::DynamicElement(#id)),
 	});
 
 	quote! {
