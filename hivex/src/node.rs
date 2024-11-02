@@ -189,7 +189,7 @@ impl<'hive> SelectedNode<'hive> {
 			Value::Sz(x) | Value::ExpandSz(x) | Value::Link(x) => {
 				return self.set_value_string(flags, &*c_key, ty, x);
 			}
-			Value::MultiSz(x) => return self.set_value_multistring(flags, &c_key, ty, &x),
+			Value::MultiSz(x) => return self.set_value_multistring(flags, &c_key, ty, x),
 		};
 
 		// Construct structure for setting value
