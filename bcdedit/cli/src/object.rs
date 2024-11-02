@@ -1,5 +1,12 @@
 use {
-	crate::{cli::ObjectOps, open_store}, bcdedit::object::typing::ObjectType, derive_more::{Display, Error}, error_stack::{report, Result, ResultExt}, owo_colors::OwoColorize, std::path::Path, tabled::settings::object::Rows, uuid::Uuid
+	crate::{cli::ObjectOps, open_store},
+	bcdedit::object::typing::ObjectType,
+	derive_more::{Display, Error},
+	error_stack::{report, Result, ResultExt},
+	owo_colors::OwoColorize,
+	std::path::Path,
+	tabled::settings::object::Rows,
+	uuid::Uuid,
 };
 
 pub fn object(
@@ -25,7 +32,12 @@ fn infodump(store_path: impl AsRef<Path>, uuid: Uuid) -> Result<(), ObjectManipu
 	println!("{} {}", "Object:".bold(), uuid.as_hyphenated());
 	print_object_type(obj.type_());
 	println!("\n{}", "Elements:".underline().bold());
-	
+
+	// hack: Temporaty solution (they are often permanent)
+	for (key, value) in obj.elements().with_values().flatten() {
+		println!("{}{} {value:?}", key.bold(), ":".bold());
+	}
+
 	Ok(())
 }
 

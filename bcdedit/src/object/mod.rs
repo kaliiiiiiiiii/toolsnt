@@ -12,7 +12,10 @@ use {
 	},
 	derive_more::{Display, Error},
 	error_stack::{ensure, report, Result, ResultExt},
-	hivex::{node::SelectedNode, SetValueFlags},
+	hivex::{
+		node::{NodeHandle, SelectedNode},
+		BorrowedHive, SetValueFlags,
+	},
 	std::fmt::Debug,
 	typing::ObjectType,
 	uuid::Uuid,
@@ -108,39 +111,7 @@ impl<'hive> Object<'hive> {
 			return Ok(None);
 		};
 
-		let value_h = self
-			.elements
-			.hive()
-			.node(node_h)
-			.get_value(c"Element")
-			.change_context(RetrievalError::MalformedElementInHive)?;
-
-		let value = self
-			.elements
-			.hive()
-			.value(value_h)
-			.get()
-			.change_context(RetrievalError::ValueRetrieval)?;
-
-		let type_ = value_type_of_id(id)
-			.ok_or_else(|| report!(RetrievalError::UnknownId))
-			.attach_printable(
-				"Failed to determine type from the ID. Hint: It is contained in 6th doublet.",
-			)?;
-
-		match type_ {
-			Type::Device => format::DeviceFormat::from_hive_value(value).map(Value::Device),
-			Type::String => format::Str::from_hive_value(value).map(Value::String),
-			Type::Guid => format::Guid::from_hive_value(value).map(Value::Guid),
-			Type::GuidList => format::GuidList::from_hive_value(value).map(Value::GuidList),
-			Type::Integer => format::Integer::from_hive_value(value).map(Value::Integer),
-			Type::Bool => format::Bool::from_hive_value(value).map(Value::Bool),
-			Type::IntegerList => {
-				format::IntegerList::from_hive_value(value).map(Value::IntegerList)
-			}
-		}
-		.map(Some)
-		.change_context(RetrievalError::FromHiveValue)
+		node_get_value(element, self.elements.hive(), node_h)
 	}
 
 	pub fn elements(&self) -> elements_iter::Elements<'hive> {
@@ -150,6 +121,40 @@ impl<'hive> Object<'hive> {
 			handles,
 		}
 	}
+}
+
+fn node_get_value<'hive>(
+	element: DynamicElement,
+	hive: BorrowedHive<'hive>,
+	node_h: NodeHandle,
+) -> Result<Option<GetValue>, RetrievalError> {
+	let value_h = hive
+		.node(node_h)
+		.get_value(c"Element")
+		.change_context(RetrievalError::MalformedElementInHive)?;
+
+	let value = hive
+		.value(value_h)
+		.get()
+		.change_context(RetrievalError::ValueRetrieval)?;
+
+	let type_ = value_type_of_id(element.as_raw())
+		.ok_or_else(|| report!(RetrievalError::UnknownId))
+		.attach_printable(
+			"Failed to determine type from the ID. Hint: It is contained in 6th doublet.",
+		)?;
+
+	match type_ {
+		Type::Device => format::DeviceFormat::from_hive_value(value).map(Value::Device),
+		Type::String => format::Str::from_hive_value(value).map(Value::String),
+		Type::Guid => format::Guid::from_hive_value(value).map(Value::Guid),
+		Type::GuidList => format::GuidList::from_hive_value(value).map(Value::GuidList),
+		Type::Integer => format::Integer::from_hive_value(value).map(Value::Integer),
+		Type::Bool => format::Bool::from_hive_value(value).map(Value::Bool),
+		Type::IntegerList => format::IntegerList::from_hive_value(value).map(Value::IntegerList),
+	}
+	.map(Some)
+	.change_context(RetrievalError::FromHiveValue)
 }
 
 #[derive(Clone, Copy, Debug, Display, Error, PartialEq, Eq)]

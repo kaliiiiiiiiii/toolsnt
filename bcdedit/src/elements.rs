@@ -2,7 +2,7 @@ use {
 	crate::value::Type,
 	derive_more::Debug,
 	num_enum::{IntoPrimitive, TryFromPrimitive},
-	std::str::FromStr,
+	std::{fmt::Display, str::FromStr},
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, TryFromPrimitive, IntoPrimitive)]
@@ -28,6 +28,16 @@ impl DynamicElement {
 
 	pub const fn name(&self) -> Option<&'static str> {
 		__element_to_str(self.as_raw())
+	}
+}
+
+impl Display for DynamicElement {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		if let Some(string) = self.name() {
+			f.write_str(&string)
+		} else {
+			write!(f, "Unknown Element ({:x})", self.as_raw())
+		}
 	}
 }
 
