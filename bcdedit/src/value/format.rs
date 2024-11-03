@@ -1,3 +1,5 @@
+//! BCD value formats
+
 pub use super::device::DeviceFormat;
 
 use {
@@ -11,14 +13,20 @@ use {
 	uuid::Uuid,
 };
 
+/// Defines BCD format
 pub trait Format {
+	/// Type when getting
 	type Get;
+	/// Type when setting
 	type Set<'a>;
 
+	/// Convert value from [`hivex`] to [`Self::Get`]
 	fn from_hive_value(value: HiveValue<LibCBox<str>>) -> Result<Self::Get, FromHiveValueError>;
+	/// Convert [`Self::Set`] to [`hivex`] value to be saved
 	fn into_hive_value(value: Self::Set<'_>) -> HiveValue<Cow<'_, CStr>>;
 }
 
+/// A string (with internal UTF-16 representation)
 pub enum Str {}
 impl Format for Str {
 	type Get = LibCBox<str>;
@@ -33,6 +41,7 @@ impl Format for Str {
 	}
 }
 
+/// An 64-bit unsigned integer
 pub enum Integer {}
 impl Format for Integer {
 	type Get = u64;
@@ -55,6 +64,7 @@ impl Format for Integer {
 	}
 }
 
+/// Boolean value
 pub enum Bool {}
 impl Format for Bool {
 	type Get = bool;
@@ -79,6 +89,7 @@ impl Format for Bool {
 	}
 }
 
+/// Fancy Microsoft word for UUID
 pub enum Guid {}
 impl Format for Guid {
 	type Get = Uuid;
@@ -93,6 +104,7 @@ impl Format for Guid {
 	}
 }
 
+/// Fancy Microsoft word for UuidList
 pub enum GuidList {}
 impl Format for GuidList {
 	type Get = Box<[Uuid]>;
@@ -108,6 +120,7 @@ impl Format for GuidList {
 	}
 }
 
+/// List of [`integers`][`Integer`]
 pub enum IntegerList {}
 impl Format for IntegerList {
 	type Get = LibCBox<[u64]>;
@@ -153,12 +166,16 @@ impl Format for IntegerList {
 	}
 }
 
+/// Error context when value can't be converted from [`hivex`] value
 #[derive(Clone, Copy, Debug, Display, Error)]
 pub enum FromHiveValueError {
+	/// Value has different type than demanded
 	#[display("The type of hive value doesn't match the format's expected one")]
 	TypeMismatch,
+	/// The value's internal format do not match the requirement
 	#[display("Value's format doesn't correspond the expected one")]
 	Format,
+	/// BCDEdit doesn't support this type/format yet
 	#[display("BCDEdit doesn't support this feature")]
 	NotImplemented,
 }

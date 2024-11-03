@@ -217,7 +217,7 @@ define_error_enum! {
 	/// The WIM file cannot be compacted because of its format,
 	/// its layout, or the write parameters specified by the user
 	CompactionNotPossible,
-	/// The WIM image cannot be modified because it is currently 
+	/// The WIM image cannot be modified because it is currently
 	/// referenced from multiple places
 	ImageHasMultipleReferences,
 	/// The destination WIM already contains one of the source images

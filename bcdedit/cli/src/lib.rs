@@ -4,7 +4,7 @@ pub mod object;
 mod utils;
 
 use {
-	bcdedit::{Bcd, StoreFlags},
+	bcdedit::{Store, StoreFlags},
 	cli::{Cli, Ops},
 	derive_more::{Display, Error},
 	error_stack::{Result, ResultExt},
@@ -30,7 +30,7 @@ pub fn process_cli(cli: Cli) -> Result<(), ApplicationError> {
 }
 
 pub fn init_bcd(cli: &Cli) -> Result<(), ApplicationError> {
-	Bcd::create(&cli.store, StoreFlags::empty(), hivex::OpenFlags::empty())
+	Store::create(&cli.store, StoreFlags::empty(), hivex::OpenFlags::empty())
 		.change_context(ApplicationError::Init)?;
 
 	eprintln!("BCD Store {:?} initialized", &cli.store);
@@ -59,7 +59,7 @@ pub fn list_objects(
 	Ok(())
 }
 
-fn open_store(path: impl AsRef<Path>, writable: bool) -> std::io::Result<Bcd> {
+fn open_store(path: impl AsRef<Path>, writable: bool) -> std::io::Result<Store> {
 	let flags = if writable {
 		hivex::OpenFlags::WRITE
 	} else {
@@ -67,7 +67,7 @@ fn open_store(path: impl AsRef<Path>, writable: bool) -> std::io::Result<Bcd> {
 	};
 
 	let hive = hivex::Hive::open(path, flags)?;
-	Bcd::from_hive(hive).ok_or_else(|| {
+	Store::from_hive(hive).ok_or_else(|| {
 		std::io::Error::new(
 			std::io::ErrorKind::InvalidData,
 			"Hive is not a valid BCD store",

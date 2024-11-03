@@ -1,3 +1,5 @@
+//! BCD Object
+
 pub mod elements_iter;
 pub mod typing;
 
@@ -50,8 +52,10 @@ impl<'hive> Object<'hive> {
 
 	/// Set a [`Value`] in BCD
 	///
-	/// Do not forget to commit the BCD to save the changes by
-	/// [`crate::Bcd::commit`]. # Warning
+	/// Do not forget to commit to the BCD store to save the changes by
+	/// [`crate::Store::commit`].
+	/// 
+	/// # Warning
 	/// Object type checking is not yet done. Setting element not belonging to
 	/// format of this object may lead to unexpected behaviour.
 	pub fn set(&self, element: DynamicElement, value: SetValue) -> Result<(), SetError> {
@@ -114,6 +118,7 @@ impl<'hive> Object<'hive> {
 		node_get_value(element, self.elements.hive(), node_h)
 	}
 
+	/// Iterate through all elements
 	pub fn elements(&self) -> elements_iter::Elements<'hive> {
 		let handles = self.elements.children().into_vec().into_iter();
 		elements_iter::Elements {
@@ -157,26 +162,36 @@ fn node_get_value(
 	.change_context(RetrievalError::FromHiveValue)
 }
 
+/// Error context when trying to retrieve an object
 #[derive(Clone, Copy, Debug, Display, Error, PartialEq, Eq)]
 pub enum RetrievalError {
+	/// Missing an `Element` key
 	#[display("BCD hive doesn't contain the `Element` key")]
 	MalformedElementInHive,
+	/// Failed to get it from the hive
 	#[display("Failed to get value from the hive")]
 	ValueRetrieval,
+	/// The ID is not known
 	#[display("Provided element ID is not known to BCDEdit")]
 	UnknownId,
-	#[display("Value inside hive is not correctly formated or known to BCDEdit")]
+	/// Value is not correctly formatted or known to BCDEdit
+	#[display("Value inside hive is not correctly formatted or known to BCDEdit")]
 	FromHiveValue,
 }
 
+/// Error context when setting the value
 #[derive(Clone, Copy, Debug, Display, Error, PartialEq, Eq)]
 pub enum SetError {
+	/// Types do not match
 	#[display("Type of value doesn't match element's type")]
 	TypeMismatch,
+	/// Failed to create the element
 	#[display("Failed to create element inside hive")]
 	ElementCreation,
+	/// The ID is not known
 	#[display("Provided element ID is not known to BCDEdit")]
 	UnknownId,
+	/// General hive manipulation error
 	#[display("Failed to set value in BCD hive")]
 	Set,
 }

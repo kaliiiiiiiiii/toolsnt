@@ -1,3 +1,5 @@
+//! Iterables through elements of an object
+
 use {
 	crate::{elements::DynamicElement, value::GetValue},
 	derive_more::{Display, Error},
@@ -14,15 +16,17 @@ macro_rules! try_some {
 	};
 }
 
-pub type Pair<'a> = (DynamicElement, GetValue<'a>);
+type Pair<'a> = (DynamicElement, GetValue<'a>);
 type HandlesIter = allocator_api2::vec::IntoIter<NodeHandle, LibCAlloc>;
 
+/// Iterator through elements
 pub struct Elements<'hive> {
 	pub(super) hive: BorrowedHive<'hive>,
 	pub(super) handles: HandlesIter,
 }
 
 impl<'hive> Elements<'hive> {
+	/// Attach values and form pairs
 	pub fn with_values(self) -> ElementValuePairs<'hive> {
 		ElementValuePairs {
 			hive: self.hive,
@@ -30,11 +34,15 @@ impl<'hive> Elements<'hive> {
 		}
 	}
 
+	/// Returns the exact remaining length of the iterator
+	///
+	/// Refer to [`ExactSizeIterator::len`]
 	pub fn len(&self) -> usize {
 		self.handles.len()
 	}
 
-	pub fn is_empty(&self) -> bool {
+	/// Check if no elements remain
+	pub fn has_next_elements(&self) -> bool {
 		self.len() == 0
 	}
 }
@@ -51,17 +59,22 @@ impl Iterator for Elements<'_> {
 	}
 }
 
+/// Iterate through pairs of elements and their values
 pub struct ElementValuePairs<'hive> {
 	hive: BorrowedHive<'hive>,
 	handles: HandlesIter,
 }
 
 impl ElementValuePairs<'_> {
+	/// Returns the exact remaining length of the iterator
+	///
+	/// Refer to [`ExactSizeIterator::len`]
 	pub fn len(&self) -> usize {
 		self.handles.len()
 	}
 
-	pub fn is_empty(&self) -> bool {
+	/// Check if no elements remain
+	pub fn has_next_elements(&self) -> bool {
 		self.len() == 0
 	}
 }
@@ -85,13 +98,23 @@ impl<'hive> Iterator for ElementValuePairs<'hive> {
 	}
 }
 
+/// Failed to parse the ID
 #[derive(Clone, Copy, Debug, Display, Error, PartialEq, Eq)]
 pub struct IdParseError;
 
+/// Error when retreiving pairs
 #[derive(Debug, Display, Error, PartialEq, Eq)]
 pub enum PairsError {
+	/// Failed to parse element's name
 	#[display("Failed to decode name \"{name}\"")]
-	NameParse { name: LibCBox<str> },
+	NameParse {
+		/// The name in the hive
+		name: LibCBox<str>,
+	},
+	/// Failed to decode the value
 	#[display("Failed to decode value")]
-	ValueDecode { element: DynamicElement },
+	ValueDecode {
+		/// Element which BCDEdit failed to decode
+		element: DynamicElement,
+	},
 }

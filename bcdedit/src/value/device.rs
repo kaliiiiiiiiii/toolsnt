@@ -16,35 +16,44 @@ use {
 
 type LibCVec<T> = allocator_api2::vec::Vec<T, hivex::alloc::LibCAlloc>;
 
+/// [`Device`] with additional options
 #[binrw]
 #[brw(little)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DeviceFormat {
+	/// Object UUID with additional device options
 	#[br(map = |arr: [u8; 16]| Uuid::from_bytes_le(arr))]
 	#[bw(map = |uuid| uuid.to_bytes_le())]
 	pub additional_options: Uuid,
+	/// Device itself
 	pub device: Device,
 }
 
+/// BCD device
 #[binrw]
 #[brw(little)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Device {
+	/// Plain partition on a disk
 	#[brw(magic = 0x06_u64)]
 	Partition(#[brw(magic = 0x48_u64)] Partition),
+	/// File
 	#[brw(magic = b"\0\0\0\0\0\0\0\0\x80\0\0\0\0\0\0\0")]
 	File(#[brw(magic = 0x05_u32)] File),
+	/// Ramdisk (unknown to me)
 	#[brw(magic = b"\0\0\0\0\0\0\0\0\x94\0\0\0\0\0\0\0")]
 	Ramdisk(Ramdisk),
 	// #[brw(magic = 0xC6_u64)]
 	// LocateEx,
 }
 
+/// Partition on disk
 #[binrw]
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Partition {
+	/// Master Boot Record partition
 	#[non_exhaustive]
 	Mbr {
 		#[brw(pad_before = 2)]
@@ -66,6 +75,7 @@ pub enum Partition {
 		disk: u32,
 	},
 
+	/// GUID Partition Table
 	#[non_exhaustive]
 	Gpt {
 		/// Partition UUID
@@ -83,15 +93,22 @@ pub enum Partition {
 }
 
 impl Partition {
+	/// Create [`Self::Mbr`] variant
+	/// 
+	/// This is required as all other fields are not known yet
 	pub fn mbr(disk: u32, partition: u32) -> Self {
 		Self::Mbr { partition, disk }
 	}
 
+	/// Create [`Self::gpt`] variant
+	/// 
+	/// This is required as all other fields are not known yet
 	pub fn gpt(disk: Uuid, partition: Uuid) -> Self {
 		Self::Gpt { partition, disk }
 	}
 }
 
+/// A file on a device
 #[binrw]
 #[non_exhaustive]
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -115,16 +132,20 @@ pub struct File {
 	#[bw(ignore)]
 	__: (),
 
+	/// Device on which the file is located
 	pub device: Box<Device>,
+	/// Path to the file (UTF-16)
 	pub path: NullWideString,
 }
 
 impl File {
+	/// Create a new file
 	pub fn new(device: Box<Device>, path: NullWideString) -> Self {
 		Self { device, path }
 	}
 }
 
+/// Ramdisk file
 #[binrw]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Ramdisk {
@@ -139,6 +160,7 @@ pub struct Ramdisk {
 	#[bw(calc = [0; 19])]
 	__: [u8; 19],
 
+	/// File with ramdisk
 	#[brw(magic = 0x00_u32)]
 	pub file: File,
 }

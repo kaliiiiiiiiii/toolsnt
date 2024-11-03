@@ -1,12 +1,23 @@
+//! BCD object types
+
 use num_enum::{FromPrimitive, IntoPrimitive, TryFromPrimitive};
 
+/// Object type
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ObjectType {
+	/// Application (loadable)
 	Application {
+		/// Type of the image
+		///
+		/// Image in this context is commonly referred to as »executable« or
+		/// »binary«
 		image: ImageType,
+		/// Type of application
 		app_type: ApplicationType,
 	},
+	/// Object is meant to be inherit by others
 	Inherit(InheritType),
+	/// Device
 	Device,
 }
 
@@ -64,9 +75,13 @@ impl From<ObjectType> for u32 {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, TryFromPrimitive, IntoPrimitive)]
 #[repr(u8)]
 pub enum ImageType {
+	/// UEFI firmware application
 	Firmware = 1,
+	/// Windows Boot Loader application
 	WindowsBoot,
+	/// NTLDR bootloader
 	LegacyLoader,
+	/// Application for 16 bit real mode
 	RealMode,
 }
 
@@ -74,16 +89,27 @@ pub enum ImageType {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, FromPrimitive, IntoPrimitive)]
 #[repr(u8)]
 pub enum ApplicationType {
+	/// Windows Boot Manager (to be loaded by UEFI)
 	FwBootMgr = 1,
+	/// Windows Boot Manager
 	BootMgr,
+	/// Windows Boot Loader
 	OsLoader,
+	/// Resume from memory image (hibernation)
 	Resume,
+	/// Memory diagnostic
 	MemDiag,
+	/// Windows Legacy Bootloader
 	NtLdr,
+	/// Windows Setup Loader
 	SetupLdr,
+	/// Execute program in MBR (for real-mode application)
 	BootSector,
+	/// Startup object (unknown to me)
 	Startup,
+	/// UEFI application
 	BootApp,
+	/// Unknown application type
 	#[num_enum(default)]
 	Unknown = 255,
 }

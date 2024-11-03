@@ -1,3 +1,6 @@
+//! Library for reading and editing Windows Boot Configuration Data
+
+#![deny(missing_docs)]
 #![forbid(unsafe_op_in_unsafe_fn)]
 
 pub mod elements;
@@ -15,15 +18,15 @@ use {
 	uuid::Uuid,
 };
 
-// Boot Configuration Data Hive
-pub struct Bcd {
+/// Boot Configuration Data store
+pub struct Store {
 	hive: Hive,
 	objects_node: NodeHandle,
 	description_node: NodeHandle,
 }
 
-impl Bcd {
-	/// Create [`Bcd`] from opened BCD registry hive
+impl Store {
+	/// Create [`Store`] from opened BCD registry hive
 	///
 	/// Note that it has to be a valid BCD hive. Opening other hives is not
 	/// supported.
@@ -39,7 +42,7 @@ impl Bcd {
 		})
 	}
 
-	/// Create a completely new [`Bcd`]
+	/// Create a completely new [`Store`]
 	pub fn create(
 		path: impl AsRef<Path>,
 		store_flags: StoreFlags,
@@ -262,63 +265,79 @@ impl Bcd {
 	}
 }
 
+/// You may provide an UUID or let BCDEdit to generate it
 #[derive(Clone, Copy)]
 pub enum MaybeUuid {
+	/// Generate a new V4 UUID
 	Generate,
+	/// Use this UUID
 	Provided(Uuid),
-}
-
-#[derive(Clone, Copy)]
-pub enum OpenMode {
-	ReadOnly,
-	ReadWrite,
 }
 
 bitflags::bitflags! {
 	/// BCD Store flags
 	#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 	pub struct StoreFlags: u8 {
+		/// Tell Windows to mount this store to HKEY_LOCAL_MACHINE (?)
 		const SYSTEM = 0b1;
+		/// Treat as system store
 		const TREAT_AS_SYSTEM = 0b10;
 	}
 }
 
+/// Handle to BCD object
+///
+/// Wraps [`NodeHandle`]
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct ObjectHandle(NodeHandle);
 
+/// General error manipulating the registry backing store
 #[derive(Clone, Copy, Debug, Display, Error, PartialEq, Eq)]
 #[display("Registry manipulation error")]
 pub struct HivexError;
 
+/// Error context when retreiving UUID for object
 #[derive(Clone, Copy, Debug, Display, Error, PartialEq, Eq)]
 pub enum UuidRetrievalError {
+	/// Failed to read value from the registry
 	#[display("Registry read error")]
 	Hivex,
+	/// It is not a valid UUID
 	#[display("UUID parse error")]
 	Parse,
 }
 
+/// Error context for retreiving object from the store
 #[derive(Clone, Copy, Debug, Display, Error, PartialEq, Eq)]
 pub enum ObjectRetrievalError {
+	/// There was no type information ()
 	#[display("Missing type information")]
 	MissingTypeInfo,
+	/// There are no elements (Description\Type)
 	#[display("Missing elements key")]
 	MissingElements,
+	/// Object has no valid UUID
 	#[display("Invalid UUID")]
 	Uuid,
+	/// The type of the object is not valid or BCDEdit doesn't support it
+	/// (hopefully yet)
 	#[display("Type tag in the hive is not valid or a supported value")]
 	InvalidType,
 }
 
+/// Error context for creating a new object
 #[derive(Clone, Copy, Debug, Display, Error, PartialEq, Eq)]
 pub enum ObjectCreationError {
+	/// Object with provided/generated UUID already exists
 	#[display("Object with same UUID already exists")]
 	AlreadyExists,
+	/// General hive manipulation errro
 	#[display("BCD hive manipulation error")]
 	Hivex,
 }
 
+/// Error when creating a new store
 #[derive(Clone, Copy, Debug, Display, Error, PartialEq, Eq)]
 #[display("Failed to create a new BCD store")]
 pub struct StoreCreationError;

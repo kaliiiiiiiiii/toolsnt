@@ -90,8 +90,8 @@
 //!
 //! ## Custom allocation functions
 //! WimLib allows settings custom allocator functions. I would really like to
-//! make [`wimlib`][`crate`] bindings support this feature, especially by automatically
-//! hooking that to users global allocator, but…
+//! make [`wimlib`][`crate`] bindings support this feature, especially by
+//! automatically hooking that to users global allocator, but…
 //! 1. It uses C-style allocation APIs, which are very basic compared to Rusts
 //!    and inherently incompatible. Rust's [allocation
 //!    APIs][`std::alloc::GlobalAlloc`] require knowing
@@ -129,7 +129,9 @@ pub use wim::{
 	WimInfo, WriteFlags, ALL_IMAGES,
 };
 
-pub use {error::Error, raii::*, wimlib_sys as sys};
+pub use {error::Error, raii::*};
+
+pub use wimlib_sys as sys;
 
 /// Return the version of wimlib
 pub fn version() -> (u16, u16, u16) {

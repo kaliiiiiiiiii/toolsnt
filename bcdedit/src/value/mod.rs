@@ -22,4 +22,4 @@ pub mod format;
 
 mod value;
 
-pub use value::{GetValue, SetValue, Value, Type};
+pub use value::{GetValue, SetValue, Type, Value};

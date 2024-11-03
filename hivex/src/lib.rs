@@ -42,7 +42,9 @@ pub mod value;
 
 mod utils;
 
-pub use {alloc::LibCBox, hivex_sys as sys, sys::VERSION};
+pub use {alloc::LibCBox, sys::VERSION};
+
+pub use hivex_sys as sys;
 
 use {
 	node::{NodeHandle, SelectedNode},

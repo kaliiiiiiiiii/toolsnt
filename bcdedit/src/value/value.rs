@@ -7,18 +7,28 @@ use {
 	std::fmt::Debug,
 };
 
+/// Value when getting from the store
 pub type GetValue<'a> = Value<'a, Get>;
+/// Value when saving to the store
 pub type SetValue<'a> = Value<'a, Set>;
 
+/// Enum of all supported value formats
 #[derive(Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Value<'a, Sel: UseCase> {
+	/// A device
 	Device(Sel::Value<'a, DeviceFormat>) = 1,
+	/// A string
 	String(Sel::Value<'a, format::Str>),
+	/// A GUID (UUID)
 	Guid(Sel::Value<'a, format::Guid>),
+	/// A list of GUIDs
 	GuidList(Sel::Value<'a, format::GuidList>),
+	/// An integer
 	Integer(Sel::Value<'a, format::Integer>),
+	/// A boolean
 	Bool(Sel::Value<'a, format::Bool>),
+	/// A list of integers
 	IntegerList(Sel::Value<'a, format::IntegerList>),
 }
 
@@ -46,6 +56,7 @@ where
 }
 
 impl<Sel: UseCase> Value<'_, Sel> {
+	/// Get type of the value
 	pub fn type_of(&self) -> Type {
 		match self {
 			Value::Device(_) => Type::Device,
@@ -59,15 +70,23 @@ impl<Sel: UseCase> Value<'_, Sel> {
 	}
 }
 
+/// Type of a value
 #[derive(Clone, Copy, Debug, PartialEq, Eq, IntoPrimitive, TryFromPrimitive)]
 #[repr(u8)]
 pub enum Type {
+	/// A device
 	Device = 1,
+	/// A string
 	String,
+	/// A GUID (UUID)
 	Guid,
+	/// A list of GUIDs
 	GuidList,
+	/// An integer
 	Integer,
+	/// A boolean
 	Bool,
+	/// A list of integers
 	IntegerList,
 }
 

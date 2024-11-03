@@ -108,7 +108,7 @@ category "library" {
 	element 0x16000054 name="GraphicsForceHighestMode"
 	element 0x16000060 name="IsolatedExecutionContext"
 
-	element 0x15000065 name="BootUxDisplayMessage"         enum=""
+	element 0x15000065 name="BootUxDisplayMessage"         enum="DisplayMessage"
 	element 0x15000066 name="BootUxDisplayMessageOverride" enum="DisplayMessage"
 	element 0x16000067 name="BootUxLogoDisable"
 	element 0x16000068 name="BootUxTextDisable"
@@ -376,7 +376,7 @@ category "application" {
 		element 0x26000070 name="UseFirmwarePciSettings"
 		element 0x25000071 name="MsiPolicy"                       enum="ForceOffPolicy"
 		element 0x25000072 name="PciExpressPolicy"                enum="ForceOffPolicy"
-		element 0x25000080 name="SafeBoot"                        enum=""
+		element 0x25000080 name="SafeBoot"                        enum="SafeBootPolicy"
 		element 0x26000081 name="SafeBootAlternativeShell"
 		element 0x26000090 name="BootLogInitialization"
 		element 0x26000091 name="VerboseObjectLoadMode"
