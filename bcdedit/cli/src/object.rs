@@ -1,5 +1,8 @@
 use {
-	crate::{cli::ObjectOps, open_store, CustomDisplay},
+	crate::{
+		cli::ObjectOps, open_store, utils::slice_try_for_each_interleaved_with_context,
+		CustomDisplay,
+	},
 	bcdedit::{
 		object::{elements_iter::PairsError, typing::ObjectType, Object},
 		value::{
@@ -11,7 +14,10 @@ use {
 	derive_more::{Display, Error},
 	error_stack::{report, Result, ResultExt},
 	owo_colors::OwoColorize,
-	std::{fmt::{Debug, Write}, path::Path},
+	std::{
+		fmt::{Debug, Write},
+		path::Path,
+	},
 	tabled::Table,
 	uuid::Uuid,
 };
@@ -147,23 +153,20 @@ impl Display for CustomDisplay<'_, GetValue<'_>> {
 			Value::Device(dev) => Display::fmt(&CustomDisplay(dev), f),
 			Value::String(string) => f.write_str(string),
 			Value::Guid(uuid) => Display::fmt(&uuid.braced(), f),
-			Value::GuidList(uuids) => {
-				let Some((last, uuids)) = uuids.split_last() else {
-					return Ok(())
-				};
-
-				for uuid in uuids {
-					Display::fmt(&uuid.braced(), f)?;
-					f.write_char('\n')?;
-				}
-
-				Display::fmt(&last.braced(), f)?;
-
-				Ok(())
-			},
+			Value::GuidList(uuids) => slice_try_for_each_interleaved_with_context(
+				uuids,
+				f,
+				|f, uuid| Display::fmt(&uuid.braced(), f),
+				|f| f.write_char('\n'),
+			),
 			Value::Integer(int) => Display::fmt(int, f),
 			Value::Bool(boolean) => Display::fmt(boolean, f),
-			Value::IntegerList(list) => Debug::fmt(list, f),
+			Value::IntegerList(list) => slice_try_for_each_interleaved_with_context(
+				list,
+				f,
+				|f, n| write!(f, "{n:#x}"),
+				|f| f.write_str(", "),
+			),
 		}
 	}
 }

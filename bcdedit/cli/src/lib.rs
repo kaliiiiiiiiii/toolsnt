@@ -1,6 +1,8 @@
 pub mod cli;
 pub mod object;
 
+mod utils;
+
 use {
 	bcdedit::{Bcd, StoreFlags},
 	cli::{Cli, Ops},

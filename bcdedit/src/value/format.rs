@@ -118,7 +118,7 @@ impl Format for IntegerList {
 
 		// We are doing raw casting. So we want it to actually have entire u64s inside.
 		ensure!(
-			bytes.len() % size_of::<u64>() != 0,
+			bytes.len() % size_of::<u64>() == 0,
 			report!(FromHiveValueError::Format)
 				.attach_printable("REG_BINARY representation of integer list's length is not a multiply of eight (64 bits)")
 		);
