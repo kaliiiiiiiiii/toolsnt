@@ -1,7 +1,7 @@
 use {
 	crate::{cli::ObjectOps, open_store, CustomDisplay},
 	bcdedit::{
-		object::{typing::ObjectType, Object},
+		object::{elements_iter::PairsError, typing::ObjectType, Object},
 		value::{
 			device::{Device, Partition},
 			format::DeviceFormat,
@@ -11,7 +11,7 @@ use {
 	derive_more::{Display, Error},
 	error_stack::{report, Result, ResultExt},
 	owo_colors::OwoColorize,
-	std::{fmt::Debug, path::Path},
+	std::{fmt::{Debug, Write}, path::Path},
 	tabled::Table,
 	uuid::Uuid,
 };
@@ -67,12 +67,23 @@ impl Display for CustomDisplay<'_, Object<'_>> {
 
 		let elements = self.0.elements();
 
-		let mut elements_table = Table::new(
-			elements
-				.with_values()
-				.flatten()
-				.map(|(k, v)| (k.to_string(), CustomDisplay(&v).to_string())),
-		);
+		let mut elements_table = Table::new(elements.with_values().map(|result| match result {
+			Ok((k, v)) => (k.to_string(), CustomDisplay(&v).to_string()),
+			Err(report) => match report.current_context() {
+				PairsError::NameParse { name } => (
+					format!(
+						"{}{}{}",
+						"Unknown element (\"".italic(),
+						name.italic(),
+						"\")".italic()
+					),
+					String::new(),
+				),
+				PairsError::ValueDecode { element } => {
+					(element.to_string(), report.red().italic().to_string())
+				}
+			},
+		}));
 
 		let elements_table = elements_table.with(tabled::settings::Style::blank()).with(
 			tabled::settings::Disable::row(tabled::settings::object::Rows::first()),
@@ -136,7 +147,20 @@ impl Display for CustomDisplay<'_, GetValue<'_>> {
 			Value::Device(dev) => Display::fmt(&CustomDisplay(dev), f),
 			Value::String(string) => f.write_str(string),
 			Value::Guid(uuid) => Display::fmt(&uuid.braced(), f),
-			Value::GuidList(_) => f.write_str("TODO!"),
+			Value::GuidList(uuids) => {
+				let Some((last, uuids)) = uuids.split_last() else {
+					return Ok(())
+				};
+
+				for uuid in uuids {
+					Display::fmt(&uuid.braced(), f)?;
+					f.write_char('\n')?;
+				}
+
+				Display::fmt(&last.braced(), f)?;
+
+				Ok(())
+			},
 			Value::Integer(int) => Display::fmt(int, f),
 			Value::Bool(boolean) => Display::fmt(boolean, f),
 			Value::IntegerList(list) => Debug::fmt(list, f),
@@ -195,7 +219,7 @@ fn device_tree_fmt(
 			)?;
 			device_tree_fmt(f, &file.device, level + 1, false)?;
 		}
-		Device::Ramdisk(_ramdisk) => f.write_str("Ramdisk <todo>")?,
+		Device::Ramdisk(_ramdisk) => f.write_str("Ramdisk <?>")?,
 		_ => f.write_str("<unknown>")?,
 	}
 

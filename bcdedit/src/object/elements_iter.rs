@@ -2,7 +2,7 @@ use {
 	crate::{elements::DynamicElement, value::GetValue},
 	derive_more::{Display, Error},
 	error_stack::{Result, ResultExt},
-	hivex::{alloc::LibCAlloc, node::NodeHandle, BorrowedHive},
+	hivex::{alloc::LibCAlloc, node::NodeHandle, BorrowedHive, LibCBox},
 };
 
 macro_rules! try_some {
@@ -71,17 +71,15 @@ impl<'hive> Iterator for ElementValuePairs<'hive> {
 
 	fn next(&mut self) -> Option<Self::Item> {
 		let handle = self.handles.next()?;
-		let name = try_some!(self
-			.hive
-			.node(handle)
-			.name()
-			.change_context(PairsError::IdParse));
+		let name = self.hive.node(handle).name().ok()?;
+		let id =
+			try_some!(u32::from_str_radix(&name, 16)
+				.change_context_lazy(|| PairsError::NameParse { name }));
 
-		let id = try_some!(u32::from_str_radix(&name, 16).change_context(PairsError::IdParse));
 		let element = DynamicElement::new(id);
 
 		let value = try_some!(super::node_get_value(element, self.hive.clone(), handle)
-			.change_context(PairsError::ValueDecode))?;
+			.change_context_lazy(|| PairsError::ValueDecode { element }))?;
 
 		Some(Ok((element, value)))
 	}
@@ -90,8 +88,10 @@ impl<'hive> Iterator for ElementValuePairs<'hive> {
 #[derive(Clone, Copy, Debug, Display, Error, PartialEq, Eq)]
 pub struct IdParseError;
 
-#[derive(Clone, Copy, Debug, Display, Error, PartialEq, Eq)]
+#[derive(Debug, Display, Error, PartialEq, Eq)]
 pub enum PairsError {
-	IdParse,
-	ValueDecode,
+	#[display("Failed to decode name \"{name}\"")]
+	NameParse { name: LibCBox<str> },
+	#[display("Failed to decode value")]
+	ValueDecode { element: DynamicElement },
 }
