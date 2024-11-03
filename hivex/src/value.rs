@@ -161,13 +161,15 @@ impl<'hive> SelectedValue<'hive> {
 
 			loop {
 				let str_ptr = array_of_strings.read();
+				assert!(!str_ptr.is_null(), "There should be no null pointer");
 
-				// Terminated by null pointer → end of slice
-				if str_ptr.is_null() {
+				let len = CStr::from_ptr(str_ptr).to_bytes().len();
+
+				// Terminated by empty string
+				if len == 0 {
 					break;
 				}
 
-				let len = CStr::from_ptr(str_ptr).to_bytes().len();
 				let str = boxed_str_from_ffi(str_ptr, len);
 				strings.push(str);
 				array_of_strings = array_of_strings.add(1);
