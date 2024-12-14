@@ -69,6 +69,7 @@ impl ElementValuePairs<'_> {
 	/// Returns the exact remaining length of the iterator
 	///
 	/// Refer to [`ExactSizeIterator::len`]
+	#[allow(clippy::len_without_is_empty)]
 	pub fn len(&self) -> usize {
 		self.handles.len()
 	}

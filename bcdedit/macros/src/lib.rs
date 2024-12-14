@@ -110,9 +110,11 @@ fn map_category(ctx: &mut Context, category: Category) -> TokenStream {
 fn map_enum(enum_of_enums: &mut TokenStream, submodule: &[Ident], enum_: Enum) -> TokenStream {
 	let name = ident(&enum_.name);
 	let raw_variants = enum_.variants.iter().map(|EnumVariant { name, value }| {
-		let name = (!name.starts_with(char::is_numeric))
-			.then(|| ident(&name))
-			.unwrap_or_else(|| format_ident!("_{name}"));
+		let name = if name.starts_with(char::is_numeric) {
+			format_ident!("_{name}")
+		} else {
+			ident(name)
+		};
 
 		let value = Literal::u64_unsuffixed(*value);
 		(name, value)
