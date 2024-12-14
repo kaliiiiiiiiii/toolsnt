@@ -18,7 +18,7 @@ fn lock_counter<'a>() -> MutexGuard<'a, usize> {
 	}
 }
 
-/// An zero-sized type which guards the resources by counting global refernece
+/// A zero-sized type which guards the resources by counting global refernece
 /// counter
 pub struct WimLib {
 	_private: (),
