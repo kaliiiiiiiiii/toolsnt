@@ -60,6 +60,8 @@ pub enum ObjectManipulationError {
 
 impl Display for CustomDisplay<'_, Object<'_>> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		let type_ = self.0.type_();
+
 		// Print header and object info
 		writeln!(
 			f,
@@ -67,14 +69,14 @@ impl Display for CustomDisplay<'_, Object<'_>> {
 			"Object: ".bold().underline(),
 			self.0.uuid().bold().underline(),
 			"Type: ".bold(),
-			CustomDisplay(&self.0.type_()),
+			CustomDisplay(&type_),
 			"Elements:".bold(),
 		)?;
 
 		let elements = self.0.elements();
 
 		let mut elements_table = Table::new(elements.with_values().map(|result| match result {
-			Ok((k, v)) => (k.to_string(), CustomDisplay(&v).to_string()),
+			Ok((k, v)) => (k.display(type_).to_string(), CustomDisplay(&v).to_string()),
 			Err(report) => match report.current_context() {
 				PairsError::NameParse { name } => (
 					format!(
@@ -85,9 +87,10 @@ impl Display for CustomDisplay<'_, Object<'_>> {
 					),
 					String::new(),
 				),
-				PairsError::ValueDecode { element } => {
-					(element.to_string(), report.red().italic().to_string())
-				}
+				PairsError::ValueDecode { element } => (
+					element.display(type_).to_string(),
+					report.red().italic().to_string(),
+				),
 			},
 		}));
 

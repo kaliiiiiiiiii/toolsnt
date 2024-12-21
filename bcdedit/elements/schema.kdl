@@ -1,6 +1,5 @@
 document {
 	info {
-
 		title       "Windows BCD Elements"
 		description "Listing of Windows Boot Configuration Data elements and their values"
 		author      "Erin <erin@erindesu.cz>"
@@ -11,6 +10,20 @@ document {
 	     description="Category specifying to which object type(s) elements belong" \
 	{
 		children {
+			node "requires" description="Object Type Requirements" {
+				prop "object"
+					description="Matches the object tag"
+					{ type "u8"; }
+
+				prop "subtype"
+					description="Matches the subtype tag"
+					{ type "u8"; }
+
+				prop "application"
+					description="Matches the application tag"
+					{ type "u8"; }
+			}
+
 			node "enum" description="Enumeration type for integer elements with pre-defined meaning" {
 				value description="Name of the enum" {
 					type "string"

@@ -169,6 +169,8 @@ category "library" {
 }
 
 category "device" {
+	requires object=3
+
 	element 0x35000001 name="ImageOffset"
 	element 0x35000002 name="TftpClientPort"
 	element 0x31000003 name="SdiDevice"
@@ -185,6 +187,8 @@ category "device" {
 }
 
 category "application" {
+	requires object=1
+
 	enum "BootUxPolicy" {
 		Disabled 0
 		Basic    1
@@ -197,6 +201,9 @@ category "application" {
 	}
 
 	category "bootmgr" {
+		requires application=1
+		requires application=2
+		
 		element 0x24000001 name="DisplayOrder"
 		element 0x24000002 name="BootSequence"
 		element 0x23000003 name="DefaultObject"
@@ -240,6 +247,8 @@ category "application" {
 	}
 
 	category "osloader" {
+		requires application=3
+
 		enum "NxPolicy" {
 			OptIn     0
 			OptOut    1
@@ -479,6 +488,8 @@ category "application" {
 	}
 
 	category "resume" {
+		requires application=4
+
 		element 0x21000001 name="HiberFileDevice"
 		element 0x22000002 name="HiberFilePath"
 		element 0x26000003 name="UseCustomSettings"
@@ -491,6 +502,8 @@ category "application" {
 	}
 
 	category "memdiag" {
+		requires application=5
+
 		enum "TestMix" {
 			Basic    0
 			Extended 1
@@ -519,15 +532,22 @@ category "application" {
 	}
 
 	category "ldr" {
+		requires application=6
+		requires application=7
+
 		element 0x22000001 name="BpbString"
 	}
 
 	category "startup" {
+		requires application=9
+
 		element 0x26000001 name="PxeSoftReboot"
 		element 0x22000002 name="PxeApplicationName"
 	}
 
 	category "bootapp" {
+		requires application=10
+
 		element 0x26000145 name="EnableBootDebugPolicy"
 		element 0x26000146 name="EnableBootOrderClean"
 		element 0x26000147 name="EnableDeviceId"

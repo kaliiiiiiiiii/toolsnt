@@ -11,4 +11,4 @@ heck        = "0.5"
 knus        = "3.2"
 miette      = { version = "5.1", features = ["fancy"] }
 proc-macro2 = "1.0"
-quote       = "1.0"
+quote2      = "0.9"

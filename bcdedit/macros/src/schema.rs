@@ -10,6 +10,8 @@ pub struct Category {
 	pub elements: Vec<Element>,
 	#[knus(children(name = "category"))]
 	pub subcategories: Vec<Self>,
+	#[knus(children(name = "requires"))]
+	pub requirements: Vec<Requires>,
 }
 
 #[derive(Decode, Debug)]
@@ -36,6 +38,16 @@ pub struct Element {
 	pub name: Option<String>,
 	#[knus(property)]
 	pub r#enum: Option<String>,
+}
+
+#[derive(Decode, Debug)]
+pub struct Requires {
+	#[knus(property)]
+	pub object: Option<u8>,
+	#[knus(property)]
+	pub subtype: Option<u8>,
+	#[knus(property)]
+	pub application: Option<u8>,
 }
 
 pub fn decode(content: &str) -> Vec<Category> {

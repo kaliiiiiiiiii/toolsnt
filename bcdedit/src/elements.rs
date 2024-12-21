@@ -3,7 +3,10 @@
 //! Elements and their values generated from `elements/elements.kdl` file
 
 use {
-	crate::value::Type,
+	crate::{
+		object::{typing::ObjectType, Object},
+		value::Type,
+	},
 	derive_more::Debug,
 	num_enum::{IntoPrimitive, TryFromPrimitive},
 	std::{fmt::Display, str::FromStr},
@@ -39,17 +42,30 @@ impl DynamicElement {
 	}
 
 	/// Get it's name (if known)
-	pub const fn name(&self) -> Option<&'static str> {
-		__element_to_str(self.as_raw())
+	pub fn name(&self, type_: ObjectType) -> Option<&'static str> {
+		__id_to_str(self.as_raw(), type_)
 	}
-}
 
-impl Display for DynamicElement {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		if let Some(string) = self.name() {
-			f.write_str(string)
-		} else {
-			write!(f, "Unknown ({:x})", self.as_raw())
+	/// Display implementation for [`DynamicElement`] refined with type
+	pub fn display(&self, type_: ObjectType) -> impl Display {
+		struct TypedSelfDisplay {
+			element: DynamicElement,
+			type_: ObjectType,
+		}
+
+		impl Display for TypedSelfDisplay {
+			fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+				if let Some(string) = self.element.name(self.type_) {
+					f.write_str(string)
+				} else {
+					write!(f, "Unknown ({:x})", self.element.as_raw())
+				}
+			}
+		}
+
+		TypedSelfDisplay {
+			element: *self,
+			type_,
 		}
 	}
 }
@@ -58,7 +74,7 @@ impl FromStr for DynamicElement {
 	type Err = FromStrError;
 
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
-		__element_from_str(s).ok_or(FromStrError)
+		__str_to_id(s).ok_or(FromStrError).map(Self)
 	}
 }
 
@@ -75,8 +91,8 @@ pub fn value_type_of_id(id: u32) -> Option<Type> {
 
 impl Enum {
 	/// Choose [`Enum`] variant for the element ID and convert the value
-	pub fn from_dword_for_element(id: u32, value: u64) -> Option<Self> {
-		Self::__for_element_value(id, value)
+	pub fn from_dword_for_element(id: u32, type_: ObjectType, value: u64) -> Option<Self> {
+		Self::__for_element_value(id, type_, value)
 	}
 }
 
