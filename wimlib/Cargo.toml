@@ -15,7 +15,7 @@ keywords    = [
 ]
 
 [features]
-default = ["mount"]
+default = ["mount", "wimlib-sys/bundled"]
 mount   = []
 
 [dependencies]

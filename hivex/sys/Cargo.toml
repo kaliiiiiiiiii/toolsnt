@@ -9,6 +9,14 @@ repository  = "https://codeberg.org/erin/toolsnt"
 categories  = ["external-ffi-bindings"]
 license     = "EUPL-1.2"
 
+[features]
+bundled = []
+
 [build-dependencies]
+autotools  = "0.2"
 bindgen    = "0.70"
+const-str = "0.5.7"
+flate2     = "1.0"
 pkg-config = "0.3"
+sha2       = "0.10"
+tar        = "0.4"
