@@ -4,7 +4,7 @@
 
 use {
 	crate::{
-		object::{typing::ObjectType, Object},
+		object::typing::ObjectType,
 		value::Type,
 	},
 	derive_more::Debug,
