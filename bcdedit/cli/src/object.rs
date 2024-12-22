@@ -56,6 +56,8 @@ pub enum ObjectManipulationError {
 	StoreOpen,
 	#[display("Failed to lookup selected object")]
 	ObjectLookup,
+	#[display("Underlying object operation")]
+	Ops,
 }
 
 impl Display for CustomDisplay<'_, Object<'_>> {
@@ -74,10 +76,10 @@ impl Display for CustomDisplay<'_, Object<'_>> {
 		)?;
 
 		let elements = self.0.elements();
-
-		let mut elements_table = Table::new(elements.with_values().map(|result| match result {
+		let data = elements.with_values().map(|result| match result {
 			Ok((k, v)) => (k.display(type_).to_string(), CustomDisplay(&v).to_string()),
 			Err(report) => match report.current_context() {
+				// Failed to get element's name => Unknown Element (0xHEX)
 				PairsError::NameParse { name } => (
 					format!(
 						"{}{}{}",
@@ -87,13 +89,15 @@ impl Display for CustomDisplay<'_, Object<'_>> {
 					),
 					String::new(),
 				),
+				// Failed to decode value => Error
 				PairsError::ValueDecode { element } => (
 					element.display(type_).to_string(),
 					report.red().italic().to_string(),
 				),
 			},
-		}));
+		});
 
+		let mut elements_table = Table::new(data);
 		let elements_table = elements_table.with(tabled::settings::Style::blank()).with(
 			tabled::settings::Disable::row(tabled::settings::object::Rows::first()),
 		);

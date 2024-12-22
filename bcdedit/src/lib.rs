@@ -73,6 +73,14 @@ impl Store {
 		Ok(new)
 	}
 
+	/// Delete object from [`Store`]
+	pub fn delete_object(&self, handle: ObjectHandle) -> Result<(), ObjectDeletionError> {
+		self.hive
+			.node(handle.0)
+			.delete()
+			.change_context(ObjectDeletionError)
+	}
+
 	/// Commit changes to backing hive file
 	pub fn commit(&self) -> Result<(), HivexError> {
 		self.hive
@@ -205,6 +213,7 @@ impl Store {
 			.change_context(ObjectRetrievalError::Uuid)?;
 
 		Ok(Object {
+			handle,
 			elements: self.hive.node(elements_node),
 			uuid,
 			type_tag,
@@ -225,10 +234,11 @@ impl Store {
 		let type_tag = u32::from(type_);
 		let objects_node = self.hive.node(self.objects_node);
 
-		let node = {
+		let (handle, node);
+		{
 			let mut uuid_buf = [0_u8; 128];
 			let uuid = uuid.braced().encode_lower(&mut uuid_buf);
-			let handle = match objects_node.node_add_child(&*uuid) {
+			handle = match objects_node.node_add_child(&*uuid) {
 				Ok(h) => h,
 				Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
 					bail!(ObjectCreationError::AlreadyExists)
@@ -236,7 +246,7 @@ impl Store {
 				Err(e) => bail!(report!(e).change_context(ObjectCreationError::Hivex)),
 			};
 
-			self.hive.node(handle)
+			node = self.hive.node(handle);
 		};
 
 		let description = self.hive.node(
@@ -258,6 +268,7 @@ impl Store {
 		);
 
 		Ok(Object {
+			handle: ObjectHandle(handle),
 			elements,
 			uuid,
 			type_tag: type_,
@@ -341,6 +352,11 @@ pub enum ObjectCreationError {
 #[derive(Clone, Copy, Debug, Display, Error, PartialEq, Eq)]
 #[display("Failed to create a new BCD store")]
 pub struct StoreCreationError;
+
+/// Error when creating a new store
+#[derive(Clone, Copy, Debug, Display, Error, PartialEq, Eq)]
+#[display("Failed to delete an object from store")]
+pub struct ObjectDeletionError;
 
 fn hex_of_u32(num: u32) -> SmallString<[u8; 8]> {
 	use std::fmt::Write as _;

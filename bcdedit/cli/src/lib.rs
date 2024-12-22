@@ -8,7 +8,9 @@ use {
 	cli::{Cli, Ops},
 	derive_more::{Display, Error},
 	error_stack::{Result, ResultExt},
+	owo_colors::OwoColorize,
 	std::path::Path,
+	tabled::Table,
 };
 
 #[derive(Debug, Display, Error, PartialEq, Eq)]
@@ -43,8 +45,9 @@ pub fn list_objects(
 	descriptions: bool,
 ) -> Result<(), ApplicationError> {
 	let store = open_store(path, false).change_context(ApplicationError::Object)?;
+	let objects = store.objects();
 	if !descriptions {
-		for object_h in store.objects().iter() {
+		for object_h in objects.iter() {
 			let object = store.object(*object_h).unwrap();
 			if info {
 				println!("{}", CustomDisplay(&object));
@@ -53,7 +56,32 @@ pub fn list_objects(
 			}
 		}
 	} else {
-		todo!("List with descriptions")
+		#[derive(tabled::Tabled)]
+		struct Row {
+			#[tabled(rename = "Object UUID")]
+			uuid: String,
+			#[tabled(rename = "Description")]
+			description: String,
+		}
+
+		let data = objects.iter().map(|object_h| {
+			let object = store.object(*object_h).unwrap();
+			let description = match object.get(bcdedit::elements::library::DESCRIPTION) {
+				Ok(Some(value)) => CustomDisplay(&value).to_string(),
+				Ok(None) => String::new(),
+				Err(e) => e.red().italic().to_string(),
+			};
+
+			Row {
+				uuid: object.uuid().to_string(),
+				description,
+			}
+		});
+
+		println!(
+			"{}",
+			Table::new(data).with(tabled::settings::Style::blank())
+		);
 	}
 
 	Ok(())

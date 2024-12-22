@@ -11,6 +11,7 @@ use {
 			format::{self, Format},
 			GetValue, SetValue, Type, Value,
 		},
+		ObjectDeletionError, ObjectHandle,
 	},
 	derive_more::{Display, Error},
 	error_stack::{ensure, report, Result, ResultExt},
@@ -25,6 +26,7 @@ use {
 
 /// BCD Object
 pub struct Object<'hive> {
+	pub(crate) handle: ObjectHandle,
 	pub(crate) elements: SelectedNode<'hive>,
 	pub(crate) uuid: Uuid,
 	pub(crate) type_tag: ObjectType,
@@ -50,11 +52,20 @@ impl<'hive> Object<'hive> {
 		self.type_tag
 	}
 
+	/// Delete self from the BCD store
+	pub fn delete(self) -> Result<(), ObjectDeletionError> {
+		self.elements
+			.hive()
+			.node(self.handle.0)
+			.delete()
+			.change_context(ObjectDeletionError)
+	}
+
 	/// Set a [`Value`] in BCD
 	///
 	/// Do not forget to commit to the BCD store to save the changes by
 	/// [`crate::Store::commit`].
-	/// 
+	///
 	/// # Warning
 	/// Object type checking is not yet done. Setting element not belonging to
 	/// format of this object may lead to unexpected behaviour.
