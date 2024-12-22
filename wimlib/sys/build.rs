@@ -6,7 +6,7 @@ use {
 		env::var,
 		fs::File,
 		io::{BufReader, Seek},
-		path::{Path, PathBuf},
+		path::PathBuf,
 		sync::LazyLock,
 	},
 };
@@ -70,7 +70,7 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn validate_and_extract(name: &str, hash: &[u8]) -> std::io::Result<PathBuf> {
-	let path = Path::new("../../cdeps").join(format!("{name}.tar.gz"));
+	let path = PathBuf::from(format!("{name}.tar.gz"));
 	let mut reader = BufReader::new(File::open(path)?);
 
 	{

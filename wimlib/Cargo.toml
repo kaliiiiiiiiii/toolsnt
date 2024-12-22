@@ -19,7 +19,7 @@ default = ["mount", "wimlib-sys/bundled"]
 mount   = []
 
 [dependencies]
-wimlib-sys = { path = "./sys", version = "0.1" }
+wimlib-sys = { path = "./sys", version = "0.2" }
 
 beef        = "0.5"
 bitflags    = "2.5"

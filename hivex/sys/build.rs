@@ -6,7 +6,7 @@ use {
 		env::var,
 		fs::File,
 		io::{BufReader, Seek},
-		path::{Path, PathBuf},
+		path::PathBuf,
 		sync::LazyLock,
 	},
 };
@@ -48,7 +48,7 @@ fn system() -> Result<(), Box<dyn std::error::Error>> {
 fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 	const VERSION: &str = "1.3.24";
 	let hash = &hex!("4b9be259e0359344aee2dce1e4df56d928b0e429abcc099479ba95b2940fb80cd285f22e6a914902bcc716e8b4b528f204bea10977913fc701ae45aacb66669b")[..];
-	
+
 	println!(
 		"{}",
 		const_str::concat!("cargo::rustc-env=LIB_VERSION=", VERSION)
@@ -74,7 +74,7 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn validate_and_extract(name: &str, hash: &[u8]) -> std::io::Result<PathBuf> {
-	let path = Path::new("../../cdeps").join(format!("{name}.tar.gz"));
+	let path = PathBuf::from(format!("{name}.tar.gz"));
 	let mut reader = BufReader::new(File::open(path)?);
 
 	{

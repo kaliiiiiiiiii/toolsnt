@@ -1,6 +1,6 @@
 [package]
 name    = "hivex"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2021"
 
 description = "(Hopefully) idiomatic bindings to the Hivex library"
@@ -19,7 +19,7 @@ keywords    = [
 default = ["hivex-sys/bundled"]
 
 [dependencies]
-hivex-sys = { path = "sys", version = "0.1" }
+hivex-sys = { path = "sys", version = "0.2" }
 
 allocator-api2 = "0.2"
 bitflags       = "2.6"
