@@ -1,6 +1,6 @@
 [package]
 name    = "wimlib-sys"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 links   = "wimlib"
 
@@ -10,7 +10,8 @@ categories  = ["external-ffi-bindings"]
 license     = "EUPL-1.2"
 
 [features]
-bundled = []
+bundled     = []
+sys-ntfs-3g = []
 
 [build-dependencies]
 autotools  = "0.2"

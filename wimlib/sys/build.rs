@@ -54,10 +54,14 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 	);
 
 	let src_dir = validate_and_extract(const_str::concat!("wimlib-", VERSION), hash)?;
-	autotools::Config::new(src_dir)
-		.without("fuse", None)
-		.disable_shared()
-		.build();
+	let mut config = autotools::Config::new(src_dir);
+	config.without("fuse", None).disable_shared();
+
+	if !cfg!(feature = "sys-ntfs-3g") || cfg!(docsrs) {
+		config.without("ntfs-3g", None);
+	}
+
+	config.build();
 
 	println!(
 		"cargo:rustc-link-search=native={}",
