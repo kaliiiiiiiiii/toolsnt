@@ -57,7 +57,7 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 	let mut config = autotools::Config::new(src_dir);
 	config.without("fuse", None).disable_shared();
 
-	if !cfg!(feature = "sys-ntfs-3g") || cfg!(docsrs) {
+	if !cfg!(feature = "sys-ntfs-3g") || std::env::var("DOCS_RS").is_ok() {
 		config.without("ntfs-3g", None);
 	}
 
