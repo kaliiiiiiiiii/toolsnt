@@ -625,6 +625,7 @@ impl ProgressMsg<'_> {
 					extraction_path,
 				}
 			},
+			#[cfg(feature = "mount")]
 			sys::wimlib_progress_msg_WIMLIB_PROGRESS_MSG_UNMOUNT_BEGIN => {
 				let (raw, mountpoint, mounted_wim);
 				unsafe {
