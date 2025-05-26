@@ -16,16 +16,16 @@ keywords    = [
 ]
 
 [features]
-default = ["hivex-sys/bundled"]
+bundled = ["hivex-sys/bundled"]
 
 [dependencies]
 hivex-sys = { path = "sys", version = "0.2" }
 
-allocator-api2 = "0.2"
-bitflags       = "2.6"
-libc_alloc     = "1.0"
+allocator-api2 = "0.3"
+bitflags       = "2"
+libc_alloc     = "1"
 time           = { version = "0.3", features = ["macros"] }
 
 [dev-dependencies.uuid]
-version  = "1.11"
+version  = "1"
 features = ["v4", "fast-rng"]

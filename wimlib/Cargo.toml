@@ -15,7 +15,8 @@ keywords    = [
 ]
 
 [features]
-default = ["mount", "ntfs-3g", "wimlib-sys/bundled"]
+default = ["mount", "ntfs-3g"]
+bundled = ["wimlib-sys/bundled"]
 ntfs-3g = ["wimlib-sys/sys-ntfs-3g"]
 mount   = []
 
@@ -23,13 +24,16 @@ mount   = []
 wimlib-sys = { path = "./sys", version = "0.3" }
 
 beef        = "0.5"
-bitflags    = "2.5"
-cfg-if      = "1.0"
-delegate    = "0.12"
-derive_more = "0.99"
-paste       = "1.0"
-uuid        = "1.8"
-widestring  = "1.1"
+bitflags    = "2"
+cfg-if      = "1"
+delegate    = "0.13"
+paste       = "1"
+uuid        = "1"
+widestring  = "1"
+
+[dependencies.derive_more]
+version  = "2"
+features = ["deref", "deref_mut", "display", "error"]
 
 [dependencies.time]
 version  = "0.3"

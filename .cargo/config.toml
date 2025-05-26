@@ -1,0 +1,3 @@
+[alias]
+bcdedit = "run --bin bcdedit --"
+bcdetd  = "run --bin bcdedit -- -s bcdedit/Test-Store"

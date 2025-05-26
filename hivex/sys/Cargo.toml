@@ -14,9 +14,9 @@ bundled = []
 
 [build-dependencies]
 autotools  = "0.2"
-bindgen    = "0.70"
-const-str = "0.5.7"
-flate2     = "1.0"
+bindgen    = "0.71"
+const-str  = "0.6"
+flate2     = "1"
 pkg-config = "0.3"
 sha2       = "0.10"
 tar        = "0.4"

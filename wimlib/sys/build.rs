@@ -16,7 +16,9 @@ static OUT_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
 });
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-	if cfg!(feature = "bundled") {
+	let is_docs_rs = std::env::var("DOCS_RS").is_ok();
+
+	if cfg!(feature = "bundled") || is_docs_rs {
 		bundled()
 	} else {
 		system()
