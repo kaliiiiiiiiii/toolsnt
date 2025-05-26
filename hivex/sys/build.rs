@@ -89,5 +89,5 @@ fn validate_and_extract(name: &str, hash: &[u8]) -> std::io::Result<PathBuf> {
 
 	let mut archive = tar::Archive::new(GzDecoder::new(reader));
 	archive.unpack(&*OUT_DIR)?;
-	Ok(OUT_DIR.join(&name))
+	Ok(OUT_DIR.join(name))
 }

@@ -114,7 +114,8 @@ impl Store {
 	pub fn set_flags(&self, flags: StoreFlags) -> Result<(), std::io::Error> {
 		let node = self.hive.node(self.description_node);
 		let set_by = |key, flag| {
-			let val = flags.contains(flag).then_some(1).unwrap_or_default();
+			let val = flags.contains(flag) as u32;
+
 			node.set_value(
 				SetValueFlags::empty(),
 				key,

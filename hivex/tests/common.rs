@@ -37,7 +37,12 @@ impl TestHive {
 		let path = Path::new(env!("CARGO_TARGET_TMPDIR"))
 			.join(format!("{}.dat", Uuid::new_v4().as_hyphenated()));
 
-		let flags = write.then_some(OpenFlags::WRITE).unwrap_or_default();
+		let flags = if write {
+			OpenFlags::WRITE
+		} else {
+			OpenFlags::empty()
+		};
+
 		let hive = Hive::create(&path, flags)?;
 
 		Ok(TestHive { path, hive })

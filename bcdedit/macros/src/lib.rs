@@ -239,7 +239,7 @@ fn requirements_to_condition(requirements: &[Requires]) -> TokenStream {
 				("type_application", requirement.application),
 			] {
 				if let Some(value) = cond {
-					let id = Ident::new(&id, Span::call_site());
+					let id = Ident::new(id, Span::call_site());
 					quote!(ts, {
 						#id == #value,
 					});
@@ -271,7 +271,7 @@ fn trans_enum(
 			let name = if name.starts_with(char::is_numeric) {
 				format_ident!("_{name}")
 			} else {
-				ident(&name)
+				ident(name)
 			};
 
 			let value = Literal::u64_unsuffixed(*value);

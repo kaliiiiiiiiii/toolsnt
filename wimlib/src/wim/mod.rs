@@ -29,7 +29,7 @@ pub type ImageIndex = NonZero<u32>;
 /// All images index
 ///
 /// For selecting all images, using [`Wim::select_all_images`] is prefered.
-pub const ALL_IMAGES: ImageIndex = unsafe { ImageIndex::new_unchecked(u32::MAX) };
+pub const ALL_IMAGES: ImageIndex = ImageIndex::new(u32::MAX).unwrap();
 
 const fn new_image_index(n: i32) -> Option<ImageIndex> {
 	ImageIndex::new(n as u32)
