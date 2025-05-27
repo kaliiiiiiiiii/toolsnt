@@ -13,10 +13,10 @@ license     = "EUPL-1.2"
 bundled = []
 
 [build-dependencies]
-autotools  = "0.2"
-bindgen    = "0.71"
-const-str  = "0.6"
-flate2     = "1"
-pkg-config = "0.3"
-sha2       = "0.10"
-tar        = "0.4"
+autotools  = { workspace = true }
+bindgen    = { workspace = true }
+const-str  = { workspace = true }
+flate2     = { workspace = true }
+pkg-config = { workspace = true }
+sha2       = { workspace = true }
+tar        = { workspace = true }
