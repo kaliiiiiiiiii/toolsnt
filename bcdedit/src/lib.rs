@@ -8,9 +8,11 @@ pub mod object;
 pub mod value;
 pub mod well_known;
 
+pub use hivex::OpenFlags;
+
 use {
 	derive_more::{Display, Error},
-	hivex::{node::NodeHandle, CommitFlags, Hive, LibCBox, OpenFlags, SetValueFlags},
+	hivex::{node::NodeHandle, CommitFlags, Hive, LibCBox, SetValueFlags},
 	object::{typing::ObjectType, Object},
 	smallstr::SmallString,
 	std::{borrow::Cow, ffi::CStr, io::Result as IoResult, path::Path},
@@ -29,16 +31,33 @@ impl Store {
 	///
 	/// Note that it has to be a valid BCD hive. Opening other hives is not
 	/// supported.
-	pub fn from_hive(hive: Hive) -> Option<Self> {
-		let root = hive.root().ok()?;
-		let objects_node = hive.node(root).get_child("Objects")?;
-		let description_node = hive.node(root).get_child("Description")?;
+	pub fn from_hive(hive: Hive) -> IoResult<Self> {
+		let io_error = |msg| std::io::Error::new(std::io::ErrorKind::InvalidInput, msg);
 
-		Some(Self {
+		let root = hive.root()?;
+		let objects_node = hive
+			.node(root)
+			.get_child("Objects")
+			.ok_or_else(|| io_error("\"Objects\" node was not found"))?;
+
+		let description_node = hive
+			.node(root)
+			.get_child("Description")
+			.ok_or_else(|| io_error("\"Description\" node was not found"))?;
+
+		Ok(Self {
 			hive,
 			objects_node,
 			description_node,
 		})
+	}
+
+	/// Open [`Store`] by it's path and [`OpenFlags`].
+	///
+	/// Calls internally [`Hive::open`] and [`Store::from_hive`]
+	pub fn open(path: impl AsRef<Path>, flags: OpenFlags) -> IoResult<Self> {
+		let hive = Hive::open(path, flags)?;
+		Self::from_hive(hive)
 	}
 
 	/// Create a completely new [`Store`]
