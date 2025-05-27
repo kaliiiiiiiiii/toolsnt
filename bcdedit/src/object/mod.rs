@@ -110,6 +110,19 @@ impl<'hive> Object<'hive> {
 			.map_err(SetError::HiveSet)
 	}
 
+	/// Remove an element
+	pub fn remove(&self, element: DynamicElement) -> IoResult<()> {
+		let key = hex_of_u32(element.as_raw());
+		let Some(node_h) = self.elements.get_child(&key) else {
+			return Err(std::io::Error::new(
+				std::io::ErrorKind::NotFound,
+				"No element found",
+			));
+		};
+
+		self.elements.hive().node(node_h).delete()
+	}
+
 	/// Get a [`Value`] element
 	pub fn get(&self, element: DynamicElement) -> Result<Option<GetValue>, RetrievalError> {
 		let id = element.as_raw();
