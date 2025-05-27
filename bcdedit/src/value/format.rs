@@ -1,10 +1,8 @@
 //! BCD value formats
 
 pub use super::device::DeviceFormat;
-
 use {
 	derive_more::{Display, Error},
-	error_stack::{ensure, report, Result, ResultExt},
 	hivex::{value::Value as HiveValue, LibCBox},
 	std::{
 		borrow::Cow,
@@ -49,11 +47,10 @@ impl Format for Integer {
 
 	fn from_hive_value(value: HiveValue<LibCBox<str>>) -> Result<Self::Get, FromHiveValueError> {
 		let bytes = extract!(value, Binary)?;
-
-		let array_result: std::result::Result<[u8; 8], _> = bytes[..].try_into();
-		let array = array_result
-			.change_context(FromHiveValueError::Format)
-			.attach_printable("Integer values should have 8 bytes.")?;
+		let array = bytes[..]
+			.try_into()
+			.map_err(|_| PatternMismatchInner::IntSize)
+			.map_err(FromHiveValueError::pattern)?;
 
 		Ok(u64::from_le_bytes(array))
 	}
@@ -75,10 +72,11 @@ impl Format for Bool {
 		match &bytes[..] {
 			[0] => Ok(false),
 			[1] => Ok(true),
-			[_] => Err(report!(FromHiveValueError::Format)
-				.attach_printable("Boolean can be represented only by 0 or 1")),
-			[..] => Err(report!(FromHiveValueError::Format).attach_printable(
-				"Boolean value representation as REG_BINARY should have only one byte",
+			[_] => Err(FromHiveValueError::pattern(
+				PatternMismatchInner::BooleanMarkerValue,
+			)),
+			[..] => Err(FromHiveValueError::pattern(
+				PatternMismatchInner::BooleanMarkerSize,
 			)),
 		}
 	}
@@ -129,12 +127,12 @@ impl Format for IntegerList {
 	fn from_hive_value(value: HiveValue<LibCBox<str>>) -> Result<Self::Get, FromHiveValueError> {
 		let bytes = extract!(value, Binary)?;
 
-		// We are doing raw casting. So we want it to actually have entire u64s inside.
-		ensure!(
-			bytes.len() % size_of::<u64>() == 0,
-			report!(FromHiveValueError::Format)
-				.attach_printable("REG_BINARY representation of integer list's length is not a multiply of eight (64 bits)")
-		);
+		let is_valid_layout = bytes.len() % size_of::<u64>() == 0;
+		if !is_valid_layout {
+			return Err(FromHiveValueError::pattern(
+				PatternMismatchInner::IntListSize,
+			));
+		}
 
 		let vector = bytes.into_vec();
 		assert_eq!(
@@ -166,28 +164,16 @@ impl Format for IntegerList {
 	}
 }
 
-/// Error context when value can't be converted from [`hivex`] value
-#[derive(Clone, Copy, Debug, Display, Error)]
-pub enum FromHiveValueError {
-	/// Value has different type than demanded
-	#[display("The type of hive value doesn't match the format's expected one")]
-	TypeMismatch,
-	/// The value's internal format do not match the requirement
-	#[display("Value's format doesn't correspond the expected one")]
-	Format,
-	/// BCDEdit doesn't support this type/format yet
-	#[display("BCDEdit doesn't support this feature")]
-	NotImplemented,
-}
-
 fn sz_to_uuid(string: LibCBox<str>) -> Result<Uuid, FromHiveValueError> {
-	ensure!(
-		string.starts_with('{') && string.ends_with('}'),
-		report!(FromHiveValueError::Format)
-			.attach_printable("Sanity check — UUIDs should be braced")
-	); // note: meanwhile the author of this crate doesn't pass any sanity check
+	let is_braced = string.starts_with('{') && string.ends_with('}');
+	if !is_braced {
+		return Err(FromHiveValueError::pattern(
+			PatternMismatchInner::UuidNotBraced,
+		));
+	}
 
-	Uuid::parse_str(&string).change_context(FromHiveValueError::Format)
+	Uuid::parse_str(&string)
+		.map_err(|e| FromHiveValueError::pattern(PatternMismatchInner::UuidParse(e)))
 }
 
 fn uuid_to_sz(uuid: Uuid) -> Cow<'static, CStr> {
@@ -196,14 +182,71 @@ fn uuid_to_sz(uuid: Uuid) -> Cow<'static, CStr> {
 	cstring.into()
 }
 
+/// Error when value can't be converted from [`hivex`] value
+#[derive(Debug, Display, Error)]
+pub enum FromHiveValueError {
+	/// Value has different type than required
+	#[display(r#"Type mismatch: Expected "{expected:?}", found "{found:?}""#)]
+	TypeMismatch {
+		/// Required type
+		expected: ValueType,
+		/// Type of the item
+		found: ValueType,
+	},
+	/// Value's internal format doesn't match expected pattern
+	#[display("Invalid pattern: {_0}")]
+	Pattern(#[error(source)] PatternMismatch),
+}
+
+impl FromHiveValueError {
+	/// Data pattern mismatch constructor
+	pub(super) fn pattern(inner: PatternMismatchInner) -> Self {
+		Self::Pattern(PatternMismatch(inner))
+	}
+}
+
+/// Error on mismatch of data patterns
+#[derive(Debug, Error)]
+pub struct PatternMismatch(#[error(not(source))] pub(super) PatternMismatchInner);
+impl Display for PatternMismatch {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		Display::fmt(&self.0, f)
+	}
+}
+
+#[derive(Debug, Display)]
+pub(super) enum PatternMismatchInner {
+	#[display("Boolean value marker is neither 0 or 1")]
+	BooleanMarkerValue,
+	#[display("Boolean value representation as REG_BINARY should have only one byte")]
+	BooleanMarkerSize,
+	#[display(
+		"REG_BINARY representation of integer list's length is not a multiply of eight (64 bits)"
+	)]
+	IntListSize,
+	#[display("Integer values should have 8 bytes")]
+	IntSize,
+	#[display("Sanity check — UUIDs should be braced")]
+	// note: meanwhile the author of this crate doesn't pass any sanity check
+	UuidNotBraced,
+	#[display("Invalid UUID: {_0}")]
+	UuidParse(uuid::Error),
+	#[display("Invalid device pattern: {_0}")]
+	Device(binrw::Error),
+}
+
 macro_rules! extract {
-	($expr:expr, $variant:ident) => {
-		match $expr {
+	($expr:expr, $variant:ident) => {{
+		let expr = $expr;
+		match expr {
 			HiveValue::$variant(inner) => Ok(inner),
-			_ => Err(::error_stack::report!(FromHiveValueError::TypeMismatch)
-				.attach_printable(concat!("Expected `", stringify!($variant), "`"))),
+			_ => Err(FromHiveValueError::TypeMismatch {
+				expected: ::hivex::value::ValueType::$variant,
+				found: expr.type_of(),
+			}),
 		}
-	};
+	}};
 }
 
 pub(super) use extract;
+use hivex::value::ValueType;

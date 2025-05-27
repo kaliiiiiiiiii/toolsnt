@@ -10,11 +10,10 @@ pub mod well_known;
 
 use {
 	derive_more::{Display, Error},
-	error_stack::{bail, report, Result, ResultExt},
 	hivex::{node::NodeHandle, CommitFlags, Hive, LibCBox, OpenFlags, SetValueFlags},
 	object::{typing::ObjectType, Object},
 	smallstr::SmallString,
-	std::{borrow::Cow, ffi::CStr, path::Path},
+	std::{borrow::Cow, ffi::CStr, io::Result as IoResult, path::Path},
 	uuid::Uuid,
 };
 
@@ -47,47 +46,31 @@ impl Store {
 		path: impl AsRef<Path>,
 		store_flags: StoreFlags,
 		hive_flags: OpenFlags,
-	) -> Result<Self, StoreCreationError> {
-		let hive = Hive::create(path.as_ref(), hive_flags | OpenFlags::WRITE)
-			.change_context(StoreCreationError)?;
+	) -> IoResult<Self> {
+		let hive = Hive::create(path.as_ref(), hive_flags | OpenFlags::WRITE)?;
+		let root = hive.node(hive.root()?);
 
-		let root = hive.node(hive.root().change_context(StoreCreationError)?);
-
-		let description_node = root
-			.node_add_child(c"Description")
-			.change_context(StoreCreationError)?;
-
-		let objects_node = root
-			.node_add_child(c"Objects")
-			.change_context(StoreCreationError)?;
-
+		let description_node = root.node_add_child(c"Description")?;
+		let objects_node = root.node_add_child(c"Objects")?;
 		let new = Self {
 			hive,
 			objects_node,
 			description_node,
 		};
 
-		new.set_flags(store_flags)
-			.change_context(StoreCreationError)?;
+		new.set_flags(store_flags)?;
 
 		Ok(new)
 	}
 
 	/// Delete object from [`Store`]
-	pub fn delete_object(&self, handle: ObjectHandle) -> Result<(), ObjectDeletionError> {
-		self.hive
-			.node(handle.0)
-			.delete()
-			.change_context(ObjectDeletionError)
+	pub fn delete_object(&self, handle: ObjectHandle) -> IoResult<()> {
+		self.hive.node(handle.0).delete()
 	}
 
 	/// Commit changes to backing hive file
-	pub fn commit(&self) -> Result<(), HivexError> {
-		self.hive
-			.commit(None, CommitFlags::empty())
-			.change_context(HivexError)?;
-
-		Ok(())
+	pub fn commit(&self) -> IoResult<()> {
+		self.hive.commit(None, CommitFlags::empty())
 	}
 
 	/// Get BCD store flags
@@ -111,7 +94,7 @@ impl Store {
 	}
 
 	/// Set BCD store flag
-	pub fn set_flags(&self, flags: StoreFlags) -> Result<(), std::io::Error> {
+	pub fn set_flags(&self, flags: StoreFlags) -> IoResult<()> {
 		let node = self.hive.node(self.description_node);
 		let set_by = |key, flag| {
 			let val = flags.contains(flag) as u32;
@@ -139,99 +122,84 @@ impl Store {
 	}
 
 	/// Get UUID of object
-	pub fn object_uuid(&self, handle: ObjectHandle) -> Result<Uuid, UuidRetrievalError> {
-		let name = self
-			.hive
-			.node(handle.0)
-			.name()
-			.change_context(UuidRetrievalError::Hivex)?;
-
-		Uuid::parse_str(&name).change_context(UuidRetrievalError::Parse)
+	pub fn object_uuid(&self, handle: ObjectHandle) -> IoResult<Uuid> {
+		let name = self.hive.node(handle.0).name()?;
+		Uuid::parse_str(&name).map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
 	}
 
 	/// Lookup and select object by UUID
-	pub fn object_lookup(&self, uuid: Uuid) -> Result<Option<Object>, ObjectRetrievalError> {
+	pub fn object_lookup(&self, uuid: Uuid) -> Option<Result<Object, FromHiveRetrievalError>> {
 		for handle in self.objects().iter().copied() {
-			let Ok(name) = self.hive.node(handle.0).name() else {
+			let Ok(obj_uuid) = self.object_uuid(handle) else {
 				continue;
 			};
 
-			if Uuid::parse_str(&name).change_context(ObjectRetrievalError::Uuid)? == uuid {
-				return self.object(handle).map(Some);
+			if obj_uuid == uuid {
+				return Some(self.object(handle));
 			}
 		}
 
-		Ok(None)
+		None
 	}
 
 	/// Retrieve object from handle
-	pub fn object(&self, handle: ObjectHandle) -> Result<Object, ObjectRetrievalError> {
-		let node = self.hive.node(handle.0);
+	pub fn object(&self, handle: ObjectHandle) -> Result<Object, FromHiveRetrievalError> {
+		(|| {
+			let node = self.hive.node(handle.0);
 
-		// Find the object's node children
-		let (description_node, elements_node);
-		{
-			// We may or may not find them. Look through all children and try.
-			let (mut maybe_description_node, mut maybe_elements_node) = (None, None);
-			for child in node.children().into_vec() {
-				let name = self
-					.hive
-					.node(child)
-					.name()
-					.expect("The node was in child list, it should have a name");
+			// Find the object's node children
+			let (description_node, elements_node);
+			{
+				// We may or may not find them. Look through all children and try.
+				let (mut maybe_description_node, mut maybe_elements_node) = (None, None);
+				for child in node.children().into_vec() {
+					let name = self
+						.hive
+						.node(child)
+						.name()
+						.expect("The node was in child list, it should have a name");
 
-				// May be nul-terminated.
-				match name.trim_matches('\0') {
-					"Description" => maybe_description_node = Some(child),
-					"Elements" => maybe_elements_node = Some(child),
-					_ => (),
+					// May be nul-terminated.
+					match name.trim_matches('\0') {
+						"Description" => maybe_description_node = Some(child),
+						"Elements" => maybe_elements_node = Some(child),
+						_ => (),
+					}
 				}
+
+				// We need to have them
+				description_node =
+					maybe_description_node.ok_or(FromHiveRetrievalErrorInner::MissingTypeInfo)?;
+				elements_node =
+					maybe_elements_node.ok_or(FromHiveRetrievalErrorInner::MissingElements)?;
 			}
 
-			// We need to have them
-			description_node = maybe_description_node
-				.ok_or(ObjectRetrievalError::MissingTypeInfo)
-				.attach_printable(
-					"Node lacks a `Description` node. It is not a valid BCD object",
-				)?;
+			let type_tag_handle = self
+				.hive
+				.node(description_node)
+				.get_value(c"Type")
+				.map_err(|_| FromHiveRetrievalErrorInner::MissingTypeInfo)?;
 
-			elements_node = maybe_elements_node.ok_or(ObjectRetrievalError::MissingElements)?;
-		}
+			let type_tag_num = self.hive.value(type_tag_handle).downcast_dword();
+			let type_tag = object::typing::ObjectType::try_from(type_tag_num)
+				.map_err(|_| FromHiveRetrievalErrorInner::InvalidType)?;
 
-		let type_tag_handle = self
-			.hive
-			.node(description_node)
-			.get_value(c"Type")
-			.change_context(ObjectRetrievalError::MissingTypeInfo)
-			.attach_printable("Failed to retrieve `Description\\Type` value handle")?;
+			let uuid = self
+				.object_uuid(handle)
+				.map_err(FromHiveRetrievalErrorInner::UuidRetrieval)?;
 
-		let type_tag_num = self.hive.value(type_tag_handle).downcast_dword();
-		let type_tag = object::typing::ObjectType::try_from(type_tag_num)
-			.map_err(|_| ObjectRetrievalError::InvalidType)?;
-
-		let uuid = self
-			.object_uuid(handle)
-			.change_context(ObjectRetrievalError::Uuid)?;
-
-		Ok(Object {
-			handle,
-			elements: self.hive.node(elements_node),
-			uuid,
-			type_tag,
-		})
+			Ok(Object {
+				handle,
+				elements: self.hive.node(elements_node),
+				uuid,
+				type_tag,
+			})
+		})()
+		.map_err(FromHiveRetrievalError)
 	}
 
 	/// Create a new object
-	pub fn object_create(
-		&self,
-		uuid: MaybeUuid,
-		type_: ObjectType,
-	) -> Result<Object, ObjectCreationError> {
-		let uuid = match uuid {
-			MaybeUuid::Generate => Uuid::new_v4(),
-			MaybeUuid::Provided(uuid) => uuid,
-		};
-
+	pub fn object_create(&self, uuid: Uuid, type_: ObjectType) -> IoResult<Object> {
 		let type_tag = u32::from(type_);
 		let objects_node = self.hive.node(self.objects_node);
 
@@ -239,34 +207,18 @@ impl Store {
 		{
 			let mut uuid_buf = [0_u8; 128];
 			let uuid = uuid.braced().encode_lower(&mut uuid_buf);
-			handle = match objects_node.node_add_child(&*uuid) {
-				Ok(h) => h,
-				Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
-					bail!(ObjectCreationError::AlreadyExists)
-				}
-				Err(e) => bail!(report!(e).change_context(ObjectCreationError::Hivex)),
-			};
-
+			handle = objects_node.node_add_child(&*uuid)?;
 			node = self.hive.node(handle);
 		};
 
-		let description = self.hive.node(
-			node.node_add_child(c"Description")
-				.change_context(ObjectCreationError::Hivex)?,
-		);
+		let description = self.hive.node(node.node_add_child(c"Description")?);
+		description.set_value(
+			SetValueFlags::empty(),
+			c"Type",
+			hivex::value::Value::<Cow<CStr>>::Dword(type_tag),
+		)?;
 
-		description
-			.set_value(
-				SetValueFlags::empty(),
-				c"Type",
-				hivex::value::Value::<Cow<CStr>>::Dword(type_tag),
-			)
-			.change_context(ObjectCreationError::Hivex)?;
-
-		let elements = self.hive.node(
-			node.node_add_child(c"Elements")
-				.change_context(ObjectCreationError::Hivex)?,
-		);
+		let elements = self.hive.node(node.node_add_child(c"Elements")?);
 
 		Ok(Object {
 			handle: ObjectHandle(handle),
@@ -275,15 +227,6 @@ impl Store {
 			type_tag: type_,
 		})
 	}
-}
-
-/// You may provide an UUID or let BCDEdit to generate it
-#[derive(Clone, Copy)]
-pub enum MaybeUuid {
-	/// Generate a new V4 UUID
-	Generate,
-	/// Use this UUID
-	Provided(Uuid),
 }
 
 bitflags::bitflags! {
@@ -304,60 +247,27 @@ bitflags::bitflags! {
 #[repr(transparent)]
 pub struct ObjectHandle(NodeHandle);
 
-/// General error manipulating the registry backing store
-#[derive(Clone, Copy, Debug, Display, Error, PartialEq, Eq)]
-#[display("Registry manipulation error")]
-pub struct HivexError;
-
-/// Error context when retreiving UUID for object
-#[derive(Clone, Copy, Debug, Display, Error, PartialEq, Eq)]
-pub enum UuidRetrievalError {
-	/// Failed to read value from the registry
-	#[display("Registry read error")]
-	Hivex,
-	/// It is not a valid UUID
-	#[display("UUID parse error")]
-	Parse,
-}
-
 /// Error context for retreiving object from the store
-#[derive(Clone, Copy, Debug, Display, Error, PartialEq, Eq)]
-pub enum ObjectRetrievalError {
-	/// There was no type information ()
+#[derive(Debug, Display, Error)]
+pub struct FromHiveRetrievalError(FromHiveRetrievalErrorInner);
+
+/// Inner represenation of object retrieval failure
+#[derive(Debug, Display, Error)]
+enum FromHiveRetrievalErrorInner {
+	/// There was no type information
 	#[display("Missing type information")]
 	MissingTypeInfo,
 	/// There are no elements (Description\Type)
 	#[display("Missing elements key")]
 	MissingElements,
-	/// Object has no valid UUID
-	#[display("Invalid UUID")]
-	Uuid,
 	/// The type of the object is not valid or BCDEdit doesn't support it
 	/// (hopefully yet)
 	#[display("Type tag in the hive is not valid or a supported value")]
 	InvalidType,
+	/// UUID retrieval error
+	#[display("Object UUID is not correct")]
+	UuidRetrieval(std::io::Error),
 }
-
-/// Error context for creating a new object
-#[derive(Clone, Copy, Debug, Display, Error, PartialEq, Eq)]
-pub enum ObjectCreationError {
-	/// Object with provided/generated UUID already exists
-	#[display("Object with same UUID already exists")]
-	AlreadyExists,
-	/// General hive manipulation errro
-	#[display("BCD hive manipulation error")]
-	Hivex,
-}
-
-/// Error when creating a new store
-#[derive(Clone, Copy, Debug, Display, Error, PartialEq, Eq)]
-#[display("Failed to create a new BCD store")]
-pub struct StoreCreationError;
-
-/// Error when creating a new store
-#[derive(Clone, Copy, Debug, Display, Error, PartialEq, Eq)]
-#[display("Failed to delete an object from store")]
-pub struct ObjectDeletionError;
 
 fn hex_of_u32(num: u32) -> SmallString<[u8; 8]> {
 	use std::fmt::Write as _;

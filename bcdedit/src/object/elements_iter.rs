@@ -1,9 +1,9 @@
 //! Iterables through elements of an object
 
 use {
+	super::RetrievalError,
 	crate::{elements::DynamicElement, value::GetValue},
-	derive_more::{Display, Error},
-	error_stack::{Result, ResultExt},
+	derive_more::derive::{Display, Error},
 	hivex::{alloc::LibCAlloc, node::NodeHandle, BorrowedHive, LibCBox},
 };
 
@@ -48,12 +48,13 @@ impl<'hive> Elements<'hive> {
 }
 
 impl Iterator for Elements<'_> {
-	type Item = Result<DynamicElement, IdParseError>;
+	type Item = std::io::Result<DynamicElement>;
 
 	fn next(&mut self) -> Option<Self::Item> {
 		let handle = self.handles.next()?;
-		let name = try_some!(self.hive.node(handle).name().change_context(IdParseError));
-		let id = try_some!(u32::from_str_radix(&name, 16).change_context(IdParseError));
+		let name = try_some!(self.hive.node(handle).name());
+		let id = try_some!(u32::from_str_radix(&name, 16)
+			.map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e)));
 
 		Some(Ok(DynamicElement::new(id)))
 	}
@@ -80,41 +81,44 @@ impl ElementValuePairs<'_> {
 }
 
 impl<'hive> Iterator for ElementValuePairs<'hive> {
-	type Item = Result<Pair<'hive>, PairsError>;
+	type Item = Result<Pair<'hive>, PairDecodeError>;
 
 	fn next(&mut self) -> Option<Self::Item> {
-		let handle = self.handles.next()?;
-		let name = self.hive.node(handle).name().ok()?;
-		let id =
-			try_some!(u32::from_str_radix(&name, 16)
-				.change_context_lazy(|| PairsError::NameParse { name }));
+		let (handle, name) = loop {
+			let handle = self.handles.next()?;
+			if let Ok(name) = self.hive.node(handle).name() {
+				break (handle, name);
+			}
+		};
+
+		let id = match u32::from_str_radix(&name, 16) {
+			Ok(id) => id,
+			Err(e) => return Some(Err(PairDecodeError::Id(e))),
+		};
 
 		let element = DynamicElement::new(id);
+		let result = super::node_get_value(element, self.hive.clone(), handle)
+			.transpose()?
+			.map(|value| (element, value))
+			.map_err(|error| PairDecodeError::Value { name, error });
 
-		let value = try_some!(super::node_get_value(element, self.hive.clone(), handle)
-			.change_context_lazy(|| PairsError::ValueDecode { element }))?;
-
-		Some(Ok((element, value)))
+		Some(result)
 	}
 }
 
-/// Failed to parse the ID
-#[derive(Clone, Copy, Debug, Display, Error, PartialEq, Eq)]
-pub struct IdParseError;
-
-/// Error when retreiving pairs
-#[derive(Debug, Display, Error, PartialEq, Eq)]
-pub enum PairsError {
-	/// Failed to parse element's name
-	#[display("Failed to decode name \"{name}\"")]
-	NameParse {
-		/// The name in the hive
+/// Error when decoding value pair
+#[derive(Debug, Display, Error)]
+pub enum PairDecodeError {
+	/// Failed to decode ID
+	#[display("Failed to decode ID: {_0}")]
+	Id(#[error(source)] std::num::ParseIntError),
+	/// ID found but value is not valid
+	#[display("Failed to decode value for \"{name}\": {error}")]
+	Value {
+		/// Name of the element
 		name: LibCBox<str>,
-	},
-	/// Failed to decode the value
-	#[display("Failed to decode value")]
-	ValueDecode {
-		/// Element which BCDEdit failed to decode
-		element: DynamicElement,
+		/// Backing error
+		#[error(source)]
+		error: RetrievalError,
 	},
 }

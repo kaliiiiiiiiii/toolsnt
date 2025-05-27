@@ -8,18 +8,17 @@ use {
 		elements::{value_type_of_id, DynamicElement},
 		hex_of_u32,
 		value::{
-			format::{self, Format},
+			format::{self, Format, FromHiveValueError},
 			GetValue, SetValue, Type, Value,
 		},
-		ObjectDeletionError, ObjectHandle,
+		ObjectHandle,
 	},
 	derive_more::{Display, Error},
-	error_stack::{ensure, report, Result, ResultExt},
 	hivex::{
 		node::{NodeHandle, SelectedNode},
 		BorrowedHive, SetValueFlags,
 	},
-	std::fmt::Debug,
+	std::{fmt::Debug, io::Result as IoResult},
 	typing::ObjectType,
 	uuid::Uuid,
 };
@@ -53,12 +52,8 @@ impl<'hive> Object<'hive> {
 	}
 
 	/// Delete self from the BCD store
-	pub fn delete(self) -> Result<(), ObjectDeletionError> {
-		self.elements
-			.hive()
-			.node(self.handle.0)
-			.delete()
-			.change_context(ObjectDeletionError)
+	pub fn delete(self) -> IoResult<()> {
+		self.elements.hive().node(self.handle.0).delete()
 	}
 
 	/// Set a [`Value`] in BCD
@@ -81,13 +76,10 @@ impl<'hive> Object<'hive> {
 		}
 
 		let id = element.as_raw();
-		let type_ = value_type_of_id(id)
-			.ok_or_else(|| report!(SetError::TypeMismatch))
-			.attach_printable(
-				"Failed to determine type from the ID. It is contained in 2nd doublet.",
-			)?;
-
-		ensure!(type_ == value.type_of(), SetError::TypeMismatch);
+		let type_ = value_type_of_id(id).ok_or(SetError::TypeMismatch)?;
+		if type_ != value.type_of() {
+			return Err(SetError::TypeMismatch);
+		}
 
 		let key = hex_of_u32(id);
 		let node_h = match self.elements.get_child(&key) {
@@ -95,7 +87,7 @@ impl<'hive> Object<'hive> {
 			None => self
 				.elements
 				.node_add_child(&key[..])
-				.change_context(SetError::ElementCreation)?,
+				.map_err(SetError::ElementCreation)?,
 		};
 
 		// todo: eww
@@ -115,7 +107,7 @@ impl<'hive> Object<'hive> {
 			.hive()
 			.node(node_h)
 			.set_value(SetValueFlags::empty(), "Element", value)
-			.change_context(SetError::Set)
+			.map_err(SetError::HiveSet)
 	}
 
 	/// Get a [`Value`] element
@@ -147,19 +139,17 @@ fn node_get_value(
 	let value_h = hive
 		.node(node_h)
 		.get_value(c"Element")
-		.change_context(RetrievalError::MalformedElementInHive)?;
+		.map_err(|e| match e.kind() {
+			std::io::ErrorKind::NotFound => RetrievalError::MalformedElementInHive,
+			_ => RetrievalError::HiveIo(e),
+		})?;
 
-	let value = hive
-		.value(value_h)
-		.get()
-		.change_context(RetrievalError::ValueRetrieval)?;
+	let value = hive.value(value_h).get().map_err(|e| match e.kind() {
+		std::io::ErrorKind::NotFound => RetrievalError::ValueRetrieval,
+		_ => RetrievalError::HiveIo(e),
+	})?;
 
-	let type_ = value_type_of_id(element.as_raw())
-		.ok_or_else(|| report!(RetrievalError::UnknownId))
-		.attach_printable(
-			"Failed to determine type from the ID. Hint: It is contained in 6th doublet.",
-		)?;
-
+	let type_ = value_type_of_id(element.as_raw()).ok_or(RetrievalError::UnknownId)?;
 	match type_ {
 		Type::Device => format::DeviceFormat::from_hive_value(value).map(Value::Device),
 		Type::String => format::Str::from_hive_value(value).map(Value::String),
@@ -170,11 +160,11 @@ fn node_get_value(
 		Type::IntegerList => format::IntegerList::from_hive_value(value).map(Value::IntegerList),
 	}
 	.map(Some)
-	.change_context(RetrievalError::FromHiveValue)
+	.map_err(RetrievalError::FromHiveValue)
 }
 
 /// Error context when trying to retrieve an object
-#[derive(Clone, Copy, Debug, Display, Error, PartialEq, Eq)]
+#[derive(Debug, Display, Error)]
 pub enum RetrievalError {
 	/// Missing an `Element` key
 	#[display("BCD hive doesn't contain the `Element` key")]
@@ -183,26 +173,28 @@ pub enum RetrievalError {
 	#[display("Failed to get value from the hive")]
 	ValueRetrieval,
 	/// The ID is not known
-	#[display("Provided element ID is not known to BCDEdit")]
+	#[display("Failed to determine type from the ID. Hint: It is contained in 6th doublet")]
 	UnknownId,
+	/// Failed to get a value from hive
+	HiveIo(#[error(source)] std::io::Error),
 	/// Value is not correctly formatted or known to BCDEdit
 	#[display("Value inside hive is not correctly formatted or known to BCDEdit")]
-	FromHiveValue,
+	FromHiveValue(#[error(source)] FromHiveValueError),
 }
 
-/// Error context when setting the value
-#[derive(Clone, Copy, Debug, Display, Error, PartialEq, Eq)]
+/// Error when setting the value
+#[derive(Debug, Display, Error)]
 pub enum SetError {
 	/// Types do not match
-	#[display("Type of value doesn't match element's type")]
+	#[display("Failed to determine type from the ID. It is contained in 2nd doublet")]
 	TypeMismatch,
-	/// Failed to create the element
-	#[display("Failed to create element inside hive")]
-	ElementCreation,
 	/// The ID is not known
 	#[display("Provided element ID is not known to BCDEdit")]
 	UnknownId,
+	/// Failed to create the element
+	#[display("Failed to create element inside hive")]
+	ElementCreation(#[error(source)] std::io::Error),
 	/// General hive manipulation error
 	#[display("Failed to set value in BCD hive")]
-	Set,
+	HiveSet(#[error(source)] std::io::Error),
 }

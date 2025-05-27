@@ -6,9 +6,8 @@
 //! mysterious data structure in `REG_BINARY`.
 
 use {
-	super::format::{extract, Format, FromHiveValueError},
+	super::format::{extract, Format, FromHiveValueError, PatternMismatchInner},
 	binrw::{binrw, BinRead, BinWrite, NullWideString},
-	error_stack::{Result, ResultExt},
 	hivex::{value::Value as HiveValue, LibCBox},
 	std::{borrow::Cow, ffi::CStr, io::Cursor},
 	uuid::Uuid,
@@ -94,14 +93,14 @@ pub enum Partition {
 
 impl Partition {
 	/// Create [`Self::Mbr`] variant
-	/// 
+	///
 	/// This is required as all other fields are not known yet
 	pub fn mbr(disk: u32, partition: u32) -> Self {
 		Self::Mbr { partition, disk }
 	}
 
 	/// Create [`Self::gpt`] variant
-	/// 
+	///
 	/// This is required as all other fields are not known yet
 	pub fn gpt(disk: Uuid, partition: Uuid) -> Self {
 		Self::Gpt { partition, disk }
@@ -172,7 +171,9 @@ impl Format for DeviceFormat {
 	fn from_hive_value(value: HiveValue<LibCBox<str>>) -> Result<Self::Get, FromHiveValueError> {
 		let bytes = extract!(value, Binary)?;
 		let mut reader = Cursor::new(bytes);
-		Self::read(&mut reader).change_context(FromHiveValueError::Format)
+		Self::read(&mut reader)
+			.map_err(PatternMismatchInner::Device)
+			.map_err(FromHiveValueError::pattern)
 	}
 
 	fn into_hive_value(value: Self::Set<'_>) -> HiveValue<Cow<'_, CStr>> {
