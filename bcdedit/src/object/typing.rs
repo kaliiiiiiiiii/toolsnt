@@ -1,6 +1,9 @@
 //! BCD object types
 
-use num_enum::{FromPrimitive, IntoPrimitive, TryFromPrimitive};
+use {
+	num_enum::{FromPrimitive, IntoPrimitive, TryFromPrimitive},
+	strum::{EnumString, IntoStaticStr},
+};
 
 /// Object type
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -72,8 +75,11 @@ impl From<ObjectType> for u32 {
 }
 
 /// Type of image for load
-#[derive(Clone, Copy, Debug, PartialEq, Eq, TryFromPrimitive, IntoPrimitive)]
+#[derive(
+	Clone, Copy, Debug, PartialEq, Eq, TryFromPrimitive, IntoPrimitive, EnumString, IntoStaticStr,
+)]
 #[repr(u8)]
+#[strum(ascii_case_insensitive)]
 pub enum ImageType {
 	/// UEFI firmware application
 	Firmware = 1,
@@ -86,7 +92,10 @@ pub enum ImageType {
 }
 
 /// Type of application
-#[derive(Clone, Copy, Debug, PartialEq, Eq, FromPrimitive, IntoPrimitive)]
+#[derive(
+	Clone, Copy, Debug, PartialEq, Eq, FromPrimitive, IntoPrimitive, EnumString, IntoStaticStr,
+)]
+#[strum(ascii_case_insensitive)]
 #[repr(u8)]
 pub enum ApplicationType {
 	/// Windows Boot Manager (to be loaded by UEFI)
@@ -115,7 +124,10 @@ pub enum ApplicationType {
 }
 
 /// Inheritable by what
-#[derive(Clone, Copy, Debug, PartialEq, Eq, TryFromPrimitive, IntoPrimitive)]
+#[derive(
+	Clone, Copy, Debug, PartialEq, Eq, TryFromPrimitive, IntoPrimitive, EnumString, IntoStaticStr,
+)]
+#[strum(ascii_case_insensitive)]
 #[repr(u8)]
 pub enum InheritType {
 	/// By any object

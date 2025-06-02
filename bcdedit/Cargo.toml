@@ -3,6 +3,10 @@ name    = "bcdedit"
 version = "0.3.0-alpha.1"
 edition = "2021"
 
+[features]
+kdl = ["dep:kdl"]
+default = ["kdl"]
+
 [dependencies]
 bcdedit-macros.path = "./macros"
 hivex.path          = "../hivex"
@@ -14,6 +18,9 @@ bytemuck       = "1.23"
 num_enum       = "0.7"
 uuid           = { version = "1", features = ["v4", "fast-rng"] }
 smallstr       = "0.3"
+
+kdl            = { version = "6", optional = true }
+strum = { version = "0.27.1", features = ["derive"] }
 
 [dependencies.derive_more]
 version  = "1"

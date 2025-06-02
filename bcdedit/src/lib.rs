@@ -8,6 +8,9 @@ pub mod object;
 pub mod value;
 pub mod well_known;
 
+#[cfg(feature = "kdl")]
+pub mod kdl;
+
 pub use hivex::OpenFlags;
 
 use {

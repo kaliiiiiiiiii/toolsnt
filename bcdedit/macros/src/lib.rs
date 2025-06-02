@@ -75,8 +75,6 @@ pub fn define_elements(ts: TokenStream1) -> TokenStream1 {
 					ret
 				}
 
-
-
 				pub(super) fn decompose_type(type_: crate::object::typing::ObjectType)
 					-> [::core::primitive::u8; 3]
 				{
@@ -306,7 +304,7 @@ fn trans_enum(
 	});
 
 	quote!(module, {
-		#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+		#[derive(Clone, Copy, Debug, PartialEq, Eq, ::strum::EnumString, ::strum::IntoStaticStr)]
 		pub enum #name { #variants }
 
 		impl ::core::convert::TryFrom<::core::primitive::u64> for #name {
