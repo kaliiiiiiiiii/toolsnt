@@ -5,7 +5,6 @@ edition = "2021"
 
 [features]
 kdl = ["dep:kdl"]
-default = ["kdl"]
 
 [dependencies]
 bcdedit-macros.path = "./macros"
