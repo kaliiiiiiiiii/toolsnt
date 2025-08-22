@@ -7,8 +7,13 @@
 
 use {
 	crate::{error::result_from_raw, string::TStr, sys, CompressionType, Error, Image, Wim},
-	std::{fs::File, os::fd::AsRawFd},
+	std::fs::File,
 };
+
+#[cfg(not(windows))]
+use std::os::fd::AsRawFd;
+#[cfg(windows)]
+use std::os::windows::io::AsRawHandle;
 
 impl Wim {
 	/// Commit this [`Wim`] to disk, updating its backing file
@@ -210,7 +215,10 @@ impl Image<'_> {
 		write_flags: WriteFlags,
 		num_threads: u32,
 	) -> Result<(), Error> {
-		let raw_handle = file.as_raw_fd();
+		#[cfg(not(windows))]
+		let raw_handle = file.as_raw_fd() as std::os::raw::c_int;
+		#[cfg(windows)]
+		let raw_handle = file.as_raw_handle() as std::os::raw::c_int;
 
 		result_from_raw(unsafe {
 			sys::wimlib_write_to_fd(

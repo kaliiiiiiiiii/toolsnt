@@ -108,14 +108,8 @@ fn git_clean(repo_path: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
 
 fn msys2_cmd(cmd: &String, args: Vec<String>, cwd: &PathBuf) -> io::Result<Vec<u8>> {
 	// Determine target
-	let target = var("TARGET").unwrap_or_default();
-	let shell = match target.as_str() {
-		"x86_64-pc-windows-gnu" | "i686-pc-windows-gnu" | "aarch64-pc-windows-gnu" => {
-			//r"C:\msys64\clang64.exe"
-			r"C:\msys64\usr\bin\bash.exe"
-		}
-		_ => return Err(io::Error::new(io::ErrorKind::Other, "Unsupported target")),
-	};
+	// let target = var("TARGET").unwrap_or_default();
+	let shell = r"C:\msys64\usr\bin\bash.exe";
 
 	// Build a single safe command string
 	let cmd_str = format!("{} {}", cmd, args.join(" "));

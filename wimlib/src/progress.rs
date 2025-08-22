@@ -544,7 +544,10 @@ impl ProgressMsg<'_> {
 				Self::ScanDentry {
 					scan,
 					cur_path: unsafe { TStr::from_ptr(raw.cur_path) },
+					#[cfg(not(windows))]
 					status: ScanDentryStatus::from_raw(raw.status)?,
+					#[cfg(windows)]
+					status: ScanDentryStatus::from_raw(raw.status as u32)?,
 				}
 			}
 			sys::wimlib_progress_msg_WIMLIB_PROGRESS_MSG_SCAN_END => {

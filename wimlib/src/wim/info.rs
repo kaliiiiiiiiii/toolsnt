@@ -805,6 +805,7 @@ pub enum ReparseTag {
 	Symlink = sys::WIMLIB_REPARSE_TAG_SYMLINK,
 }
 
+#[cfg(not(windows))]
 fn convert_timedate(timespec: sys::timespec, high_secs: i32) -> OffsetDateTime {
 	let seconds = if std::mem::size_of_val(&timespec.tv_sec) == std::mem::size_of::<i32>() {
 		let high_part = (high_secs as i64) << 32;
@@ -817,6 +818,22 @@ fn convert_timedate(timespec: sys::timespec, high_secs: i32) -> OffsetDateTime {
 
 	let nanoseconds = timespec.tv_nsec;
 	let duration = time::Duration::new(seconds, nanoseconds as i32);
+	OffsetDateTime::UNIX_EPOCH.saturating_add(duration)
+}
+
+#[cfg(windows)]
+fn convert_timedate(timespec: wimlib_sys::wimlib_timespec, high_secs: i32) -> OffsetDateTime {
+	let seconds = if std::mem::size_of_val(&timespec.tv_sec) == std::mem::size_of::<i32>() {
+		let high_part = (high_secs as i64) << 32;
+		#[allow(clippy::unnecessary_cast)]
+		let low_part = timespec.tv_sec as i64;
+		high_part | low_part
+	} else {
+		timespec.tv_sec
+	};
+
+	let nanoseconds = timespec.tv_nsec as i32;
+	let duration = time::Duration::new(seconds, nanoseconds);
 	OffsetDateTime::UNIX_EPOCH.saturating_add(duration)
 }
 

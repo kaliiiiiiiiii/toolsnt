@@ -16,6 +16,11 @@
 //! Some details of how WIM extraction works are described more fully in the
 //! documentation for **wimapply** and **wimextract**.
 
+#[cfg(not(windows))]
+use std::os::fd::AsRawFd;
+#[cfg(windows)]
+use std::os::windows::io::AsRawHandle;
+
 use {
 	crate::{
 		error::result_from_raw,
@@ -23,7 +28,7 @@ use {
 		string::{OptionalAsFfiExt, TStr, ThinTStr},
 		sys, Error, Image, WimLib,
 	},
-	std::{fs::File, os::fd::AsRawFd},
+	std::fs::File,
 };
 
 impl Image<'_> {
@@ -237,7 +242,11 @@ impl WimLib {
 		target: &TStr,
 		extract_flags: ExtractFlags,
 	) -> Result<(), Error> {
-		let raw_handle = pipe.as_raw_fd();
+		#[cfg(not(windows))]
+		let raw_handle = file.as_raw_fd() as std::os::raw::c_int;
+		#[cfg(windows)]
+		let raw_handle = file.as_raw_handle() as std::os::raw::c_int;
+
 		result_from_raw(unsafe {
 			sys::wimlib_extract_image_from_pipe(
 				raw_handle,
@@ -263,7 +272,11 @@ impl WimLib {
 		extract_flags: ExtractFlags,
 		progress_callback: &mut ProgressCallback,
 	) -> Result<(), Error> {
-		let raw_handle = pipe.as_raw_fd();
+		#[cfg(not(windows))]
+		let raw_handle = file.as_raw_fd() as std::os::raw::c_int;
+		#[cfg(windows)]
+		let raw_handle = file.as_raw_handle() as std::os::raw::c_int;
+
 		let callback_thin: *mut *mut ProgressCallback = &mut (progress_callback as *mut _);
 
 		result_from_raw(unsafe {

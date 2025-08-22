@@ -2,6 +2,7 @@ use {crate::sys, std::fmt::Display};
 
 /// Create a result from C return code
 pub const fn result_from_raw(code: i32) -> Result<(), Error> {
+	#[cfg(not(windows))]
 	let code = code as u32;
 
 	if code == sys::wimlib_error_code_WIMLIB_ERR_SUCCESS {
