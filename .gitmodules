@@ -1,0 +1,3 @@
+[submodule "wimlib/sys/wimlib"]
+	path = wimlib/sys/wimlib
+	url = https://github.com/ebiggers/wimlib
