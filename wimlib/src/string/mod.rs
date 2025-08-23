@@ -17,7 +17,7 @@ cfg_if::cfg_if!(if #[cfg(any(windows, doc))] {
 	#[macro_export]
 	macro_rules! tstr {
 		($text:expr) => {
-			::widestring::widecstr!($text)
+			$crate::string::TStr::from_impl(::widestring::widecstr!($text))
 		};
 	}
 } else {

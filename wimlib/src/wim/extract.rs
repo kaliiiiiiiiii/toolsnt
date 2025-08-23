@@ -243,9 +243,9 @@ impl WimLib {
 		extract_flags: ExtractFlags,
 	) -> Result<(), Error> {
 		#[cfg(not(windows))]
-		let raw_handle = file.as_raw_fd() as std::os::raw::c_int;
+		let raw_handle = pipe.as_raw_fd() as std::os::raw::c_int;
 		#[cfg(windows)]
-		let raw_handle = file.as_raw_handle() as std::os::raw::c_int;
+		let raw_handle = pipe.as_raw_handle() as std::os::raw::c_int;
 
 		result_from_raw(unsafe {
 			sys::wimlib_extract_image_from_pipe(
@@ -273,9 +273,9 @@ impl WimLib {
 		progress_callback: &mut ProgressCallback,
 	) -> Result<(), Error> {
 		#[cfg(not(windows))]
-		let raw_handle = file.as_raw_fd() as std::os::raw::c_int;
+		let raw_handle = pipe.as_raw_fd() as std::os::raw::c_int;
 		#[cfg(windows)]
-		let raw_handle = file.as_raw_handle() as std::os::raw::c_int;
+		let raw_handle = pipe.as_raw_handle() as std::os::raw::c_int;
 
 		let callback_thin: *mut *mut ProgressCallback = &mut (progress_callback as *mut _);
 

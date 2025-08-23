@@ -22,6 +22,7 @@ macro_rules! define_error_enum {
 	} => {
 		paste::paste! {
 			/// Possible values of the error code returned by many functions in wimlib
+			#[cfg(not(windows))]
 			#[allow(missing_docs)]
 			#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 			#[repr(u32)]
@@ -29,8 +30,7 @@ macro_rules! define_error_enum {
 			pub enum Error {
 				$(
 					$(#[$attr])*
-					$variant =
-						sys::[<wimlib_error_code_WIMLIB_ERR_ $variant:snake:upper>],
+					$variant = sys::[<wimlib_error_code_WIMLIB_ERR_ $variant:snake:upper>],
 				)*
 
 				/// NTFS-3G encountered an error (check errno)
@@ -40,9 +40,40 @@ macro_rules! define_error_enum {
 				__Unknown = u32::MAX,
 			}
 
+			#[cfg(windows)]
+			#[allow(missing_docs)]
+			#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+			#[repr(i32)]
+			#[non_exhaustive]
+			pub enum Error {
+				$(
+					$(#[$attr])*
+					$variant = sys::[<wimlib_error_code_WIMLIB_ERR_ $variant:snake:upper>],
+				)*
+
+				/// NTFS-3G encountered an error (check errno)
+				Ntfs3G = sys::wimlib_error_code_WIMLIB_ERR_NTFS_3G,
+
+				#[doc(hidden)]
+				__Unknown = i32::MAX,
+			}
+
 			impl Error {
 				/// Create error from C library's status code
+				#[cfg(any(not(windows), doc))]
 				pub const fn from_raw(code: u32) -> Self {
+					match code {
+						$(
+							sys::[<wimlib_error_code_WIMLIB_ERR_ $variant:snake:upper>]
+								=> Self::$variant,
+						)*
+						sys::wimlib_error_code_WIMLIB_ERR_NTFS_3G => Self::Ntfs3G,
+						_ => Self::__Unknown,
+					}
+				}
+				/// Create error from C library's status code
+				#[cfg(any(windows, doc))]
+				pub const fn from_raw(code: i32) -> Self {
 					match code {
 						$(
 							sys::[<wimlib_error_code_WIMLIB_ERR_ $variant:snake:upper>]
@@ -61,7 +92,10 @@ impl std::error::Error for Error {}
 impl Display for Error {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		let error_str = unsafe {
+			#[cfg(not(windows))]
 			let str_ptr = sys::wimlib_get_error_string(*self as u32);
+			#[cfg(windows)]
+			let str_ptr = sys::wimlib_get_error_string(*self as i32);
 			crate::string::TStr::from_ptr(str_ptr)
 		};
 
