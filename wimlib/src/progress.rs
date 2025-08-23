@@ -42,7 +42,7 @@ pub(crate) unsafe extern "C" fn trampoline(
 }
 
 /// Decide whatever should happen after returning from the callback
-#[cfg(not(windows))]
+#[cfg(not(all(windows, target_env = "msvc")))]
 #[repr(u32)]
 pub enum ProgressStatus {
 	/// Proceed
@@ -52,7 +52,7 @@ pub enum ProgressStatus {
 }
 
 /// Decide whatever should happen after returning from the callback
-#[cfg(windows)]
+#[cfg(all(windows, target_env = "msvc"))]
 #[repr(i32)]
 pub enum ProgressStatus {
 	/// Proceed
@@ -784,7 +784,7 @@ impl ScanMsg<'_> {
 	}
 }
 
-#[cfg(not(windows))]
+#[cfg(not(all(windows, target_env = "msvc")))]
 impl ScanDentryStatus {
 	const fn from_raw(val: u32) -> Option<Self> {
 		let new = match val {
@@ -799,7 +799,7 @@ impl ScanDentryStatus {
 		Some(new)
 	}
 }
-#[cfg(windows)]
+#[cfg(all(windows, target_env = "msvc"))]
 impl ScanDentryStatus {
 	const fn from_raw(val: i32) -> Option<Self> {
 		let new = match val {
