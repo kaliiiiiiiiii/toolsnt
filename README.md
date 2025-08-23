@@ -15,7 +15,14 @@ Like…
 ## Changes
 See [all added commits](https://github.com/kaliiiiiiiiii/toolsnt/commits?author=kaliiiiiiiiii) or [changes comparison](https://github.com/kaliiiiiiiiii/toolsnt/compare/26978095e8069a5d32a31577d41854bd811c6724...kdl)
 - added NOTICE.md
-- improved wimlib for windows compability
+- build for windows (gnu or mvc) x64 on windows (`mingw-w64-clang-x86_64-clang`)
+
+#### TODO
+Support
+- [ ] cross-build (build on linux for windows)
+- [ ] build windows for
+	- [ ] `CLANG32` (`mingw-w64-clang-i686-clang`)
+	- [ ] `CLANGARM64`(`mingw-w64-clang-aarch64-clang`)
 
 ## Licence
 
