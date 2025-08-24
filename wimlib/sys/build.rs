@@ -12,7 +12,6 @@ static OUT_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
 });
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-
 	let is_docs_rs = std::env::var("DOCS_RS").is_ok();
 
 	if cfg!(feature = "bundled") || is_docs_rs {
@@ -183,7 +182,7 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 
 	// create clean workspace
 	git_clean(&manifest_dir.join("wimlib"))?;
-	if wimlib_src.is_dir(){
+	if wimlib_src.is_dir() {
 		fs::remove_dir_all(wimlib_src)?;
 	}
 	copy_dir_all(manifest_dir.join("wimlib"), wimlib_src)?;
@@ -209,15 +208,16 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 	);
 	println!("cargo:rustc-env=LIB_VERSION={}", version);
 
+	// bootstrap
+	cmd(
+		&wimlib_src.join("bootstrap").to_str().unwrap(),
+		vec![],
+		wimlib_src,
+		sysenv,
+	)?;
+
 	// build for windows build target
 	if var("CARGO_CFG_TARGET_OS")? == "windows" {
-		// bootstrap
-		cmd(
-			&wimlib_src.join("bootstrap").to_str().unwrap(),
-			vec![],
-			wimlib_src,
-			sysenv,
-		)?;
 
 		// autoreconf
 		// based on https://github.com/ebiggers/wimlib/blob/e59d1de0f439d91065df7c47f647f546728e6a24/tools/windows-build.sh#L201-L226
@@ -248,7 +248,7 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 		args.push("--install-prerequisites".to_string());
 
 		cmd(&buildscript.to_str().unwrap(), args, wimlib_src, sysenv)?;
-		
+
 		// copy output files to include and lib
 		fs::copy(
 			wimlib_src.join("include/wimlib.h"),
@@ -261,6 +261,7 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 		copy_dir_all(wimlib_src.join(".libs"), libs)?;
 		fs::rename(libs.join("libwim-15.dll"), libs.join("libwim.dll"))?;
 	} else {
+		// not building on windows
 		let mut config = autotools::Config::new(wimlib_src);
 		config.without("fuse", None).disable_shared();
 
