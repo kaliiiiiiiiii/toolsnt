@@ -173,28 +173,60 @@ fn get_target() -> Result<(&'static str, &'static str, &'static str), String> {
 		var("CARGO_CFG_TARGET_ARCH").map_err(|e| format!("Failed to read target arch: {e}"))?;
 
 	match arch.as_str() {
-		// "x86" => Ok(("i686", "CLANG32", "clang64")), // clang32 not supported anymore by mysys2
-		"x86_64" => Ok(("x86_64", "CLANG64", "clang64")),
-		"aarch64" => Ok(("aarch64", "CLANGARM64", "clangarm64")),
+		"i686" => Ok(("i686", "MINGW32", "mingw-w64-i686-gcc")), // clang32 not supported anymore by mysys2
+		"x86_64" => Ok(("x86_64", "MINGW64", "mingw-w64-x86_64-gcc")), // or ("x86_64", "CLANG64", "mingw-w64-clang-x86_64-clang")
+		"aarch64" => Ok(("aarch64", "CLANGARM64", "external")), // see https://github.com/ebiggers/wimlib/blob/e59d1de0f439d91065df7c47f647f546728e6a24/tools/windows-build.sh#L78-L89
 		other => Err(format!("Unsupported arch: {other}")),
 	}
 }
 
 #[cfg(windows)]
-fn find_clang_builtin_include() -> PathBuf {
-	let clang_root = PathBuf::from("C:\\msys64\\clang64\\lib\\clang");
-	let dirs = fs::read_dir(&clang_root)
-		.expect("Cannot read clang root")
-		.filter_map(|e| e.ok())
-		.filter(|e| e.path().is_dir())
-		.collect::<Vec<_>>();
-	dirs[0].path().join("include")
+fn first_dir(path: &PathBuf) -> Option<PathBuf> {
+	if !path.exists() {
+		return None;
+	}
+
+	let mut dirs: Vec<PathBuf> = fs::read_dir(path)
+		.ok()?
+		.filter_map(|entry| entry.ok())
+		.map(|entry| entry.path())
+		.filter(|path| path.is_dir())
+		.collect();
+
+	dirs.sort();
+	dirs.into_iter().next()
+}
+
+#[cfg(windows)]
+pub fn find_mysys_include(sysenv: &str, mingw_host: &str, mingw_target: &str) -> Option<PathBuf> {
+	let include_dir: PathBuf;
+	let msys2_root = PathBuf::from("C:\\msys64");
+	if mingw_target.contains("gcc") {
+		let gcc_base_path = msys2_root
+			.join(sysenv.to_lowercase())
+			.join("lib\\gcc")
+			.join(mingw_host);
+		let version_dir = first_dir(&gcc_base_path)?;
+		include_dir = version_dir.join("include");
+	} else if mingw_target.contains("clang") {
+		let clang_root = msys2_root.join(sysenv.to_lowercase()).join("lib\\clang");
+		include_dir = first_dir(&clang_root)?.join("include")
+	} else {
+		return None;
+	}
+
+	if include_dir.exists() {
+		Some(include_dir)
+	} else {
+		None
+	}
 }
 
 /// Build and set linking instructions
 fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 	let cargo_target_dir: PathBuf;
-	#[cfg(windows)]{
+	#[cfg(windows)]
+	{
 		if var("CARGO_CFG_TARGET_ENV").unwrap() == "msvc" {
 			todo!("Building wimlib on windows for windows msvc isn't implemented yet. Needs https://stackoverflow.com/a/69293718/20443541");
 		}
@@ -211,7 +243,7 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 	let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 	let commitsha = commitsha(&manifest_dir.join("wimlib"));
 
-	let (arch, sysenv, toolchain_dir) = get_target()?;
+	let (arch, sysenv, mingw_target) = get_target()?;
 
 	let wimlib_src = &OUT_DIR.join("wimlib");
 
@@ -263,13 +295,17 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 	if var("CARGO_CFG_TARGET_OS")? == "windows" {
 		// autoreconf
 		// based on https://github.com/ebiggers/wimlib/blob/e59d1de0f439d91065df7c47f647f546728e6a24/tools/windows-build.sh#L201-L226
-		let cc = format!("{arch}-w64-mingw32");
+		let mingw_host = format!("{arch}-w64-mingw32");
 		let mut args: Vec<String> = vec![
 			"--without-fuse".to_string(),
-			"--enable-shared".to_string(),
-			//"--enable-static".to_string(), // we want to link statically
-			format!("--host={cc}"),
+			"--enable-shared".to_string(), // needed for windows-build.sh to succeed
+			format!("--host={mingw_host}"),
+			// 	"CFLAGS=-D_POSIX -D_POSIX_THREAD_SAFE_FUNCTIONS -DUNICODE -D_UNICODE -D_CRT_NON_CONFORMING_SWPRINTFS -D__MINGW_USE_VC2005_COMPAT -D_WIN32_WINNT=0x0600".to_string(), // Windows Vista or later
+			//	"CCFLAGS=-D_POSIX -D_POSIX_THREAD_SAFE_FUNCTIONS -DUNICODE -D_UNICODE -D_CRT_NON_CONFORMING_SWPRINTFS -D__MINGW_USE_VC2005_COMPAT -D_WIN32_WINNT=0x0600".to_string(),
 		];
+
+		#[cfg(not(windows))] // we need to use dylib for windows on windows
+		args.push("--enable-static".to_string()); // we want to link statically)
 
 		if !cfg!(feature = "sys-ntfs-3g") || std::env::var("DOCS_RS").is_ok() {
 			args.push("--without-ntfs-3g".to_string());
@@ -307,9 +343,9 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 			wimlib_src.join(".libs").to_string_lossy()
 		);
 		#[cfg(windows)]
-		println!("cargo:rustc-link-lib=dylib=wim-15");
+		println!("cargo:rustc-link-lib=dylib=wim");
 		#[cfg(not(windows))]
-		println!("cargo:rustc-link-lib=static=wim-15");
+		println!("cargo:rustc-link-lib=static=wim");
 
 		extra_bindgen_args.push(format!("-fms-extensions"));
 		extra_bindgen_args.push(format!("-fdeclspec"));
@@ -320,19 +356,18 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 		));
 		bindgen_target = format!("{arch}-pc-windows-gnu");
 
-		if toolchain_dir == "clang64" {
-			#[cfg(windows)]
-			{
-				extra_bindgen_args.push(format!(
-					"-I{}",
-					find_clang_builtin_include().to_string_lossy()
-				))
+		#[cfg(windows)]
+		{
+			if let Some(mysys_include) = find_mysys_include(sysenv, &mingw_host, &mingw_target) {
+				extra_bindgen_args.push(format!("-I{}", mysys_include.to_string_lossy()));
+			} else {
+				println!(
+					"cargo:warning=System include might be missing, not resolved, to implement"
+				);
 			}
-			#[cfg(not(windows))]
-			println!("cargo:warning=System include might be missing, not resolved, to implement");
-		} else {
-			println!("cargo:warning=System include might be missing, not resolved, to implement");
 		}
+		#[cfg(not(windows))]
+		println!("cargo:warning=System include might be missing, not resolved, to implement");
 	} else {
 		// not building on windows
 		println!("cargo:warning=System include might be missing, not resolved, to implement");
