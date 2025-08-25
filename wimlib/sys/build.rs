@@ -193,6 +193,21 @@ fn find_clang_builtin_include() -> PathBuf {
 
 /// Build and set linking instructions
 fn bundled() -> Result<(), Box<dyn std::error::Error>> {
+	let cargo_target_dir: PathBuf;
+	#[cfg(windows)]{
+		if var("CARGO_CFG_TARGET_ENV").unwrap() == "msvc" {
+			todo!("Building wimlib on windows for windows msvc isn't implemented yet. Needs https://stackoverflow.com/a/69293718/20443541");
+		}
+		#[cfg(windows)]
+		{
+			println!("cargo:warning=Building wimlib on windows for windows links libwim-15.dll dynamically");
+			cargo_target_dir = PathBuf::from(
+			var("CARGO_TARGET_DIR").expect("This crate requires CARGO_TARGET_DIR to be set for building for windows on windows. This is required for corretly placing libwim-15.dll"))
+			.join(var("TARGET").unwrap())
+			.join(var("PROFILE").unwrap())
+			.join("libwim-15.dll");
+		}
+	}
 	let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 	let commitsha = commitsha(&manifest_dir.join("wimlib"));
 
@@ -246,13 +261,6 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 
 	// build for windows build target
 	if var("CARGO_CFG_TARGET_OS")? == "windows" {
-
-		if var("CARGO_CFG_TARGET_ENV").unwrap() == "msvc" {
-			// implement https://stackoverflow.com/a/69293718/20443541
-			todo!();
-		}
-		
-
 		// autoreconf
 		// based on https://github.com/ebiggers/wimlib/blob/e59d1de0f439d91065df7c47f647f546728e6a24/tools/windows-build.sh#L201-L226
 		let cc = format!("{arch}-w64-mingw32");
@@ -267,7 +275,7 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 			args.push("--without-ntfs-3g".to_string());
 		}
 		cmd(
-			&wimlib_src.join("configure").to_str().unwrap(),
+			&wimlib_src.join("configure").to_string_lossy(),
 			args,
 			wimlib_src,
 			sysenv,
@@ -280,30 +288,28 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 
 		// https://github.com/ebiggers/wimlib/blob/e59d1de0f439d91065df7c47f647f546728e6a24/tools/windows-build.sh#L122-L125
 		#[cfg(windows)]
-		{
-			args.push("--install-prerequisites".to_string());
-		}
+		args.push("--install-prerequisites".to_string());
 
-		cmd(&buildscript.to_str().unwrap(), args, wimlib_src, sysenv)?;
+		cmd(&buildscript.to_string_lossy(), args, wimlib_src, sysenv)?;
 
 		// copy output files to include and lib
 		fs::copy(
 			wimlib_src.join("include/wimlib.h"),
 			include.join("wimlib.h"),
 		)?;
-		let target = PathBuf::from(
-			var("CARGO_TARGET_DIR").expect("This crate requires CARGO_TARGET_DIR to be set for building. This is required for corretly placing libwim-15.dll"))
-			.join(var("TARGET").unwrap())
-			.join(var("PROFILE").unwrap())
-			.join("libwim-15.dll");
-		fs::copy(wimlib_src.join(".libs/libwim-15.dll"), target)
+
+		#[cfg(windows)]
+		fs::copy(wimlib_src.join(".libs/libwim-15.dll"), cargo_target_dir)
 			.expect("copying .libs/libwim-15.dll failed");
 
 		println!(
 			"cargo:rustc-link-search=native={}",
-			wimlib_src.join(".libs").to_str().unwrap()
+			wimlib_src.join(".libs").to_string_lossy()
 		);
+		#[cfg(windows)]
 		println!("cargo:rustc-link-lib=dylib=wim-15");
+		#[cfg(not(windows))]
+		println!("cargo:rustc-link-lib=static=wim-15");
 
 		extra_bindgen_args.push(format!("-fms-extensions"));
 		extra_bindgen_args.push(format!("-fdeclspec"));
@@ -312,20 +318,24 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 			"-I{}",
 			wimlib_src.join("include").to_str().unwrap()
 		));
-		bindgen_target = format!("x86_64-pc-windows-gnu");
+		bindgen_target = format!("{arch}-pc-windows-gnu");
 
-		#[cfg(windows)]
-		{
-			// extra_bindgen_args.push(format!("-IC:\\msys64\\{toolchain_dir}\\include"));
-			if toolchain_dir == "clang64" {
+		if toolchain_dir == "clang64" {
+			#[cfg(windows)]
+			{
 				extra_bindgen_args.push(format!(
 					"-I{}",
-					find_clang_builtin_include().to_str().unwrap().to_string()
+					find_clang_builtin_include().to_string_lossy()
 				))
 			}
+			#[cfg(not(windows))]
+			println!("cargo:warning=System include might be missing, not resolved, to implement");
+		} else {
+			println!("cargo:warning=System include might be missing, not resolved, to implement");
 		}
 	} else {
 		// not building on windows
+		println!("cargo:warning=System include might be missing, not resolved, to implement");
 		let mut config = autotools::Config::new(wimlib_src);
 		config.without("fuse", None).disable_shared();
 
@@ -336,14 +346,14 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 		config.build();
 		println!(
 			"cargo:rustc-link-search=native={}",
-			OUT_DIR.join("lib").to_str().unwrap()
+			OUT_DIR.join("lib").to_string_lossy()
 		);
 		println!("cargo:rustc-link-lib=static=wim");
 	}
 
 	println!(
 		"cargo:rerun-if-changed={}",
-		manifest_dir.join("wimlib").to_str().unwrap()
+		manifest_dir.join("wimlib").to_string_lossy()
 	);
 	let builder = bindgen::builder()
 		.header(OUT_DIR.join("include/wimlib.h").to_string_lossy())

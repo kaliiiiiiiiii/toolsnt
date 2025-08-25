@@ -1,7 +1,8 @@
 use {
 	beef::lean::Cow,
 	std::fmt::{Debug, Display},
-	widestring::{error::NulError, U16CStr},
+	std::path::Path,
+	widestring::{error::NulError, U16CStr, U16CString},
 };
 
 pub(crate) type ItemType = u16;
@@ -31,6 +32,28 @@ impl TStr {
 	pub fn from_slice(slice: &[u16]) -> Result<&Self, impl std::error::Error> {
 		let cstr = U16CStr::from_slice(slice)?;
 		Ok::<_, NulError<_>>(Self::from_impl(cstr))
+	}
+
+	fn from_boxed_ucstr(b: Box<U16CStr>) -> Box<TStr> {
+		// SAFETY: `TStr` is #[repr(transparent)] over `U16CStr`.
+		// Box<T> and Box<U> have identical layout in memory.
+		unsafe { Box::from_raw(Box::into_raw(b) as *mut TStr) }
+	}
+
+	/// Create a boxed TStr from a Rust `&str`
+	pub fn from_str<S: AsRef<str>>(s: S) -> Result<Box<TStr>, Box<dyn std::error::Error>> {
+		let s_ref = s.as_ref();
+		let boxed_ucstr = U16CString::from_str(s_ref)?.into_boxed_ucstr();
+		Ok(TStr::from_boxed_ucstr(boxed_ucstr))
+	}
+
+	/// create boxed tstr from Path
+	pub fn from_path<P>(path: P) -> Result<Box<TStr>, Box<dyn std::error::Error>>
+	where
+		P: AsRef<Path>,
+	{
+		let path_ref = path.as_ref();
+		Self::from_str(path_ref.to_string_lossy())
 	}
 
 	/// Wrap a raw string
