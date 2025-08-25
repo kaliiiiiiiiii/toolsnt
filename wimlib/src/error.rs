@@ -38,23 +38,8 @@ macro_rules! define_error_enum {
 
 			impl Error {
 				/// Create error from C library's status code
-				/// gnu windows or other
-				#[cfg(not(all(windows, target_env = "msvc")))]
 				pub const fn from_raw(code: u32) -> Self {
 					match code {
-						$(
-							sys::[<wimlib_error_code_WIMLIB_ERR_ $variant:snake:upper>]
-								=> Self::$variant,
-						)*
-						sys::wimlib_error_code_WIMLIB_ERR_NTFS_3G => Self::Ntfs3G,
-						_ => Self::__Unknown,
-					}
-				}
-				/// Create error from C library's status code
-				/// msvc windows
-				#[cfg(all(windows, target_env = "msvc"))]
-				pub const fn from_raw(code: u32) -> Self {
-					match code as i32 {
 						$(
 							sys::[<wimlib_error_code_WIMLIB_ERR_ $variant:snake:upper>]
 								=> Self::$variant,
@@ -72,10 +57,7 @@ impl std::error::Error for Error {}
 impl Display for Error {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		let error_str = unsafe {
-			#[cfg(not(all(windows, target_env = "msvc")))]
 			let str_ptr = sys::wimlib_get_error_string(*self as u32);
-			#[cfg(all(windows, target_env = "msvc"))]
-			let str_ptr = sys::wimlib_get_error_string(*self as i32);
 			crate::string::TStr::from_ptr(str_ptr)
 		};
 

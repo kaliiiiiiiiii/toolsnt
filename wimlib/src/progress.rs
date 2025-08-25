@@ -42,18 +42,7 @@ pub(crate) unsafe extern "C" fn trampoline(
 }
 
 /// Decide whatever should happen after returning from the callback
-#[cfg(not(all(windows, target_env = "msvc")))]
 #[repr(u32)]
-pub enum ProgressStatus {
-	/// Proceed
-	Continue = sys::wimlib_progress_status_WIMLIB_PROGRESS_STATUS_CONTINUE,
-	/// Abort the process
-	Abort = sys::wimlib_progress_status_WIMLIB_PROGRESS_STATUS_ABORT,
-}
-
-/// Decide whatever should happen after returning from the callback
-#[cfg(all(windows, target_env = "msvc"))]
-#[repr(i32)]
 pub enum ProgressStatus {
 	/// Proceed
 	Continue = sys::wimlib_progress_status_WIMLIB_PROGRESS_STATUS_CONTINUE,
@@ -784,24 +773,8 @@ impl ScanMsg<'_> {
 	}
 }
 
-#[cfg(not(all(windows, target_env = "msvc")))]
 impl ScanDentryStatus {
 	const fn from_raw(val: u32) -> Option<Self> {
-		let new = match val {
-			sys::wimlib_progress_info_wimlib_progress_info_scan_WIMLIB_SCAN_DENTRY_OK => Self::Ok,
-			sys::wimlib_progress_info_wimlib_progress_info_scan_WIMLIB_SCAN_DENTRY_EXCLUDED => Self::Exluded,
-			sys::wimlib_progress_info_wimlib_progress_info_scan_WIMLIB_SCAN_DENTRY_UNSUPPORTED => Self::Unsupported,
-			sys::wimlib_progress_info_wimlib_progress_info_scan_WIMLIB_SCAN_DENTRY_FIXED_SYMLINK => Self::FixedSymlink,
-			sys::wimlib_progress_info_wimlib_progress_info_scan_WIMLIB_SCAN_DENTRY_NOT_FIXED_SYMLINK => Self::NotFixedSymlink,
-			_ => return None,
-		};
-
-		Some(new)
-	}
-}
-#[cfg(all(windows, target_env = "msvc"))]
-impl ScanDentryStatus {
-	const fn from_raw(val: i32) -> Option<Self> {
 		let new = match val {
 			sys::wimlib_progress_info_wimlib_progress_info_scan_WIMLIB_SCAN_DENTRY_OK => Self::Ok,
 			sys::wimlib_progress_info_wimlib_progress_info_scan_WIMLIB_SCAN_DENTRY_EXCLUDED => Self::Exluded,

@@ -106,19 +106,33 @@ fn git_clean(repo_path: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
 	Ok(())
 }
 
-fn cmd(cmd: &str, args: Vec<String>, cwd: &PathBuf, msystem: &str) -> io::Result<Vec<u8>> {
+fn cmd(cmd: &str, args: Vec<String>, cwd: &PathBuf, _msystem: &str) -> io::Result<Vec<u8>> {
 	let shell = r"C:\msys64\usr\bin\bash.exe";
-	let cmd_str = format!("{} {}", cmd, args.join(" "));
 
 	// Run command
 	let output: Output;
+	let cmd_str: String;
 	#[cfg(windows)]
 	{
+		cmd_str = format!(
+			"{} {}",
+			cmd,
+			args.iter()
+				.map(|arg| {
+					if arg.contains(' ') {
+						format!("\"{}\"", arg.replace("\"", "\\\""))
+					} else {
+						arg.clone()
+					}
+				})
+				.collect::<Vec<_>>()
+				.join(" ")
+		);
 		output = Command::new(shell)
 			.arg("-lc")
 			.arg(&cmd_str.replace("\\", "/"))
 			//TODO: propperly choose https://github.com/ebiggers/wimlib/blob/cd2a5e5d2e95c36e81d09077d06ad136f7d24950/tools/windows-build.sh#L56-L94
-			.env("MSYSTEM", msystem)
+			.env("MSYSTEM", _msystem)
 			.env("CHERE_INVOKING", "1") // optional: avoids changing directories
 			// .env("MSYS2_PATH_TYPE", "inherit") // optional: inherit Windows PATH
 			.stdin(Stdio::null())
@@ -128,6 +142,7 @@ fn cmd(cmd: &str, args: Vec<String>, cwd: &PathBuf, msystem: &str) -> io::Result
 
 	#[cfg(not(windows))]
 	{
+		cmd_str = format!("{} {}", cmd, args.join(" "));
 		output = Command::new(cmd)
 			.args(args)
 			.stdin(Stdio::null())
@@ -153,16 +168,27 @@ fn cmd(cmd: &str, args: Vec<String>, cwd: &PathBuf, msystem: &str) -> io::Result
 	}
 }
 
-fn get_target() -> Result<(&'static str, &'static str), String> {
+fn get_target() -> Result<(&'static str, &'static str, &'static str), String> {
 	let arch =
 		var("CARGO_CFG_TARGET_ARCH").map_err(|e| format!("Failed to read target arch: {e}"))?;
 
 	match arch.as_str() {
-		"x86" => Ok(("i686", "CLANG32")),
-		"x86_64" => Ok(("x86_64", "CLANG64")),
-		"aarch64" => Ok(("aarch64", "CLANGARM64")),
+		// "x86" => Ok(("i686", "CLANG32", "clang64")), // clang32 not supported anymore by mysys2
+		"x86_64" => Ok(("x86_64", "CLANG64", "clang64")),
+		"aarch64" => Ok(("aarch64", "CLANGARM64", "clangarm64")),
 		other => Err(format!("Unsupported arch: {other}")),
 	}
+}
+
+#[cfg(windows)]
+fn find_clang_builtin_include() -> PathBuf {
+	let clang_root = PathBuf::from("C:\\msys64\\clang64\\lib\\clang");
+	let dirs = fs::read_dir(&clang_root)
+		.expect("Cannot read clang root")
+		.filter_map(|e| e.ok())
+		.filter(|e| e.path().is_dir())
+		.collect::<Vec<_>>();
+	dirs[0].path().join("include")
 }
 
 /// Build and set linking instructions
@@ -170,18 +196,20 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 	let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 	let commitsha = commitsha(&manifest_dir.join("wimlib"));
 
-	let (arch, sysenv) = get_target()?;
+	let (arch, sysenv, toolchain_dir) = get_target()?;
 
 	let wimlib_src = &OUT_DIR.join("wimlib");
 
 	// output directories
-	let libs = &OUT_DIR.join("lib");
+
 	let include = &OUT_DIR.join("include");
 	fs::create_dir_all(include)?;
-	fs::create_dir_all(libs)?;
+
+	let mut extra_bindgen_args: Vec<String> = vec![];
+	let mut bindgen_target: String = var("CARGO_CFG_TARGET_ARCH").unwrap();
 
 	// create clean workspace
-	git_clean(&manifest_dir.join("wimlib"))?;
+	// git_clean(&manifest_dir.join("wimlib"))?;
 	if wimlib_src.is_dir() {
 		fs::remove_dir_all(wimlib_src)?;
 	}
@@ -219,13 +247,17 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 	// build for windows build target
 	if var("CARGO_CFG_TARGET_OS")? == "windows" {
 
+		#[cfg(target_env = "msvc")]
+		// implement https://stackoverflow.com/a/69293718/20443541
+		todo!();
+
 		// autoreconf
 		// based on https://github.com/ebiggers/wimlib/blob/e59d1de0f439d91065df7c47f647f546728e6a24/tools/windows-build.sh#L201-L226
 		let cc = format!("{arch}-w64-mingw32");
 		let mut args: Vec<String> = vec![
 			"--without-fuse".to_string(),
 			"--enable-shared".to_string(),
-			"--enable-static".to_string(), // we want to link statically
+			//"--enable-static".to_string(), // we want to link statically
 			format!("--host={cc}"),
 		];
 
@@ -241,11 +273,14 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 
 		// run windows-build.sh
 		let buildscript = wimlib_src.join("tools/windows-build.sh");
+		#[allow(unused_mut)] // not mut on linux
 		let mut args: Vec<String> = vec![format!("--arch={arch}"), "--skip-configure".to_string()];
 
 		// https://github.com/ebiggers/wimlib/blob/e59d1de0f439d91065df7c47f647f546728e6a24/tools/windows-build.sh#L122-L125
 		#[cfg(windows)]
-		args.push("--install-prerequisites".to_string());
+		{
+			args.push("--install-prerequisites".to_string());
+		}
 
 		cmd(&buildscript.to_str().unwrap(), args, wimlib_src, sysenv)?;
 
@@ -254,12 +289,39 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 			wimlib_src.join("include/wimlib.h"),
 			include.join("wimlib.h"),
 		)?;
-		fs::copy(
-			manifest_dir.join("include/stdbool.h"),
-			include.join("stdbool.h"),
-		)?;
-		copy_dir_all(wimlib_src.join(".libs"), libs)?;
-		fs::rename(libs.join("libwim-15.dll"), libs.join("libwim.dll"))?;
+		let target = PathBuf::from(
+			var("CARGO_TARGET_DIR").expect("This crate requires CARGO_TARGET_DIR to be set for building. This is required for corretly placing libwim-15.dll"))
+			.join(var("TARGET").unwrap())
+			.join(var("PROFILE").unwrap())
+			.join("libwim-15.dll");
+		fs::copy(wimlib_src.join(".libs/libwim-15.dll"), target)
+			.expect("copying .libs/libwim-15.dll failed");
+
+		println!(
+			"cargo:rustc-link-search=native={}",
+			wimlib_src.join(".libs").to_str().unwrap()
+		);
+		println!("cargo:rustc-link-lib=dylib=wim-15");
+
+		extra_bindgen_args.push(format!("-fms-extensions"));
+		extra_bindgen_args.push(format!("-fdeclspec"));
+		extra_bindgen_args.push(format!("-D_WIN32"));
+		extra_bindgen_args.push(format!(
+			"-I{}",
+			wimlib_src.join("include").to_str().unwrap()
+		));
+		bindgen_target = format!("x86_64-pc-windows-gnu");
+
+		#[cfg(windows)]
+		{
+			// extra_bindgen_args.push(format!("-IC:\\msys64\\{toolchain_dir}\\include"));
+			if toolchain_dir == "clang64" {
+				extra_bindgen_args.push(format!(
+					"-I{}",
+					find_clang_builtin_include().to_str().unwrap().to_string()
+				))
+			}
+		}
 	} else {
 		// not building on windows
 		let mut config = autotools::Config::new(wimlib_src);
@@ -270,26 +332,22 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 		}
 
 		config.build();
+		println!(
+			"cargo:rustc-link-search=native={}",
+			OUT_DIR.join("lib").to_str().unwrap()
+		);
+		println!("cargo:rustc-link-lib=static=wim");
 	}
 
 	println!(
 		"cargo:rerun-if-changed={}",
 		manifest_dir.join("wimlib").to_str().unwrap()
 	);
+	let builder = bindgen::builder()
+		.header(OUT_DIR.join("include/wimlib.h").to_string_lossy())
+		.clang_arg(format!("--target={bindgen_target}"))
+		.clang_args(extra_bindgen_args);
 
-	println!(
-		"cargo:rustc-link-search=native={}",
-		OUT_DIR.join("lib").to_str().unwrap()
-	);
-
-	#[cfg(windows)]
-	println!("cargo:rustc-link-lib=static=wim");
-	#[cfg(not(windows))]
-	println!("cargo:rustc-link-lib=static=wim");
-
-	generate_bindings(
-		bindgen::builder()
-			.header(OUT_DIR.join("include/wimlib.h").to_string_lossy())
-			.clang_arg(format!("-I{}", OUT_DIR.join("include").to_str().unwrap())),
-	)
+	generate_bindings(builder)?;
+	Ok(())
 }
