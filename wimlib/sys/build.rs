@@ -247,9 +247,11 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 	// build for windows build target
 	if var("CARGO_CFG_TARGET_OS")? == "windows" {
 
-		#[cfg(target_env = "msvc")]
-		// implement https://stackoverflow.com/a/69293718/20443541
-		todo!();
+		if var("CARGO_CFG_TARGET_ENV").unwrap() == "msvc" {
+			// implement https://stackoverflow.com/a/69293718/20443541
+			todo!();
+		}
+		
 
 		// autoreconf
 		// based on https://github.com/ebiggers/wimlib/blob/e59d1de0f439d91065df7c47f647f546728e6a24/tools/windows-build.sh#L201-L226
