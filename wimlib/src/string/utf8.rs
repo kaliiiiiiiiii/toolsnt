@@ -2,9 +2,10 @@ use {
 	beef::lean::Cow,
 	derive_more::{Display, Error},
 	std::{
-		ffi::{c_char, CStr, FromBytesWithNulError},
+		ffi::{c_char, CStr, CString, FromBytesWithNulError},
 		fmt::{Debug, Display},
 		str::Utf8Error,
+		path::Path,
 	},
 };
 
@@ -39,6 +40,16 @@ impl TStr {
 
 		let cstr = CStr::from_bytes_with_nul(slice).map_err(FromSliceError::Nul)?;
 		Ok(Self::from_impl(cstr))
+	}
+
+	pub fn from_str<S: AsRef<str>>(s: S) -> Result<Box<TStr>, Box<dyn std::error::Error>> {
+		let cstring = CString::new(s.as_ref())?; // fail if NUL inside string
+		Ok(Box::new(TStr { inner: cstring }))
+	}
+
+	pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Box<TStr>, Box<dyn std::error::Error>> {
+		// to_string_lossy returns Cow<str> safely even with non-UTF-8
+		Self::from_str(path.as_ref().to_string_lossy())
 	}
 
 	/// Wrap a raw string

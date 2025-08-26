@@ -346,7 +346,6 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 		}
 	} else {
 		// not building on windows
-		println!("cargo:warning=System include might be missing, not resolved, to implement");
 		let mut config = autotools::Config::new(wimlib_src);
 		config.without("fuse", None).disable_shared();
 

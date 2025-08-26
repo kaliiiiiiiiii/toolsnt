@@ -43,7 +43,7 @@ impl Wim {
 	///   the WIM file
 	#[doc(alias = "wimlib_get_xml_data")]
 	pub fn xml_data(&self) -> Result<&U16Str, Error> {
-		let mut out_buf_data = std::ptr::null_mut();
+		let mut out_buf_data = null_mut();
 		let mut out_buf_len = 0usize;
 
 		result_from_raw(unsafe {
