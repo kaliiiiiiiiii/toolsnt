@@ -19,10 +19,8 @@ See [all added commits](https://github.com/kaliiiiiiiiii/toolsnt/commits?author=
 
 #### TODO
 Support
-- [ ] cross-build (build on linux for windows)
-- [ ] build windows for
-	- [ ] `CLANG32` (`mingw-w64-clang-i686-clang`)
-	- [ ] `CLANGARM64`(`mingw-w64-clang-aarch64-clang`)
+- [ ] build for "arm64" [windows, linux]
+- [ ] support "msvc", not just gnu
 
 ## Licence
 

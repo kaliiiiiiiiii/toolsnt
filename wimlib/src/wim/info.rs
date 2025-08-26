@@ -831,7 +831,7 @@ fn convert_timedate(timespec: wimlib_sys::wimlib_timespec, high_secs: i32) -> Of
 		let low_part = timespec.tv_sec as i64;
 		high_part | low_part
 	} else {
-		timespec.tv_sec
+		timespec.tv_sec as i64
 	};
 
 	let nanoseconds = timespec.tv_nsec as i32;

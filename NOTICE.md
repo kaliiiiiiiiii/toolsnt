@@ -7,7 +7,7 @@ This page lists the licenses of the projects used in toolsnt.
 - [LGPL 2.1](#LGPL-2.1) (1)
 - [wimlib](#wimlib) (1)
 - [Apache-2.0 WITH LLVM-exception](#Apache-2.0-WITH-LLVM-exception) (1)
-- [MIT License](#MIT) (161)
+- [MIT License](#MIT) (158)
 - [Unicode License v3](#Unicode-3.0) (19)
 - [Apache License 2.0](#Apache-2.0) (8)
 - [European Union Public License 1.2](#EUPL-1.2) (4)
@@ -2894,14 +2894,21 @@ THIS SOFTWARE.
 - [is_ci 1.2.0]( https://github.com/zkat/is_ci )
 
 <pre>
-ISC License:
+The ISC License
 
-Copyright (c) 2004-2010 by Internet Systems Consortium, Inc. (&quot;ISC&quot;)
-Copyright (c) 1995-2003 by Internet Software Consortium
+Copyright (c) Kat Marchán and other contributors.
 
-Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby granted, provided that the above copyright notice and this permission notice appear in all copies.
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
 
-THE SOFTWARE IS PROVIDED &quot;AS IS&quot; AND ISC DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL ISC BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+THE SOFTWARE IS PROVIDED &quot;AS IS&quot; AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR
+IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.Apache License
 
 </pre>
 
@@ -3059,8 +3066,6 @@ DEALINGS IN THE SOFTWARE.
 - [filetime 0.2.25]( https://github.com/alexcrichton/filetime )
 - [git2 0.20.2]( https://github.com/rust-lang/git2-rs )
 - [jobserver 0.1.33]( https://github.com/rust-lang/jobserver-rs )
-- [libgit2-sys 0.18.2+1.9.1]( https://github.com/rust-lang/git2-rs )
-- [libssh2-sys 0.3.1]( https://github.com/alexcrichton/ssh2-rs )
 - [openssl-probe 0.1.6]( https://github.com/alexcrichton/openssl-probe )
 - [openssl-sys 0.9.109]( https://github.com/sfackler/rust-openssl )
 - [pkg-config 0.3.32]( https://github.com/rust-lang/pkg-config-rs )
@@ -4913,40 +4918,6 @@ SOFTWARE.
 
 #### Used by
 
-- [miniz_oxide 0.8.8]( https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide )
-
-<pre>
-MIT License
-
-Copyright 2013-2014 RAD Game Tools and Valve Software
-Copyright 2010-2014 Rich Geldreich and Tenacious Software LLC
-Copyright (c) 2017 Frommi
-Copyright (c) 2017-2024 oyvindln
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the &quot;Software&quot;), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-</pre>
-
-### <a name="MIT"></a>MIT License
-
-#### Used by
-
 - [widestring 1.2.0]( https://github.com/starkat99/widestring-rs )
 
 <pre>
@@ -5071,6 +5042,7 @@ DEALINGS IN THE SOFTWARE.
 #### Used by
 
 - [adler2 2.0.0]( https://github.com/oyvindln/adler2 )
+- [anyhow 1.0.99]( https://github.com/dtolnay/anyhow )
 - [displaydoc 0.2.5]( https://github.com/yaahc/displaydoc )
 - [is-terminal 0.4.16]( https://github.com/sunfishcode/is-terminal )
 - [linux-raw-sys 0.9.4]( https://github.com/sunfishcode/linux-raw-sys )
@@ -5464,19 +5436,6 @@ SOFTWARE.
 
 #### Used by
 
-- [memchr 2.7.4]( https://github.com/BurntSushi/memchr )
-
-<pre>
-This project is dual-licensed under the Unlicense and MIT licenses.
-
-You may use this code under the terms of either license.
-
-</pre>
-
-### <a name="MIT"></a>MIT License
-
-#### Used by
-
 - [libgit2-sys 0.18.2+1.9.1]( https://github.com/rust-lang/git2-rs )
 
 <pre>
@@ -5509,22 +5468,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #### Used by
 
-- [icu_collections 2.0.0]( https://github.com/unicode-org/icu4x )
-- [icu_locale_core 2.0.0]( https://github.com/unicode-org/icu4x )
-- [icu_normalizer 2.0.0]( https://github.com/unicode-org/icu4x )
-- [icu_normalizer_data 2.0.0]( https://github.com/unicode-org/icu4x )
-- [icu_properties 2.0.1]( https://github.com/unicode-org/icu4x )
-- [icu_properties_data 2.0.1]( https://github.com/unicode-org/icu4x )
-- [icu_provider 2.0.0]( https://github.com/unicode-org/icu4x )
-- [litemap 0.8.0]( https://github.com/unicode-org/icu4x )
 - [unicode-ident 1.0.18]( https://github.com/dtolnay/unicode-ident )
-- [yoke-derive 0.8.0]( https://github.com/unicode-org/icu4x )
-- [yoke 0.8.0]( https://github.com/unicode-org/icu4x )
-- [zerofrom-derive 0.1.6]( https://github.com/unicode-org/icu4x )
-- [zerofrom 0.1.6]( https://github.com/unicode-org/icu4x )
-- [zerotrie 0.2.2]( https://github.com/unicode-org/icu4x )
-- [zerovec-derive 0.11.1]( https://github.com/unicode-org/icu4x )
-- [zerovec 0.11.4]( https://github.com/unicode-org/icu4x )
 
 <pre>
 UNICODE LICENSE V3
@@ -5573,9 +5517,24 @@ authorization of the copyright holder.
 
 #### Used by
 
+- [icu_collections 2.0.0]( https://github.com/unicode-org/icu4x )
+- [icu_locale_core 2.0.0]( https://github.com/unicode-org/icu4x )
+- [icu_normalizer 2.0.0]( https://github.com/unicode-org/icu4x )
+- [icu_normalizer_data 2.0.0]( https://github.com/unicode-org/icu4x )
+- [icu_properties 2.0.1]( https://github.com/unicode-org/icu4x )
+- [icu_properties_data 2.0.1]( https://github.com/unicode-org/icu4x )
+- [icu_provider 2.0.0]( https://github.com/unicode-org/icu4x )
+- [litemap 0.8.0]( https://github.com/unicode-org/icu4x )
 - [potential_utf 0.1.2]( https://github.com/unicode-org/icu4x )
 - [tinystr 0.8.1]( https://github.com/unicode-org/icu4x )
 - [writeable 0.6.1]( https://github.com/unicode-org/icu4x )
+- [yoke-derive 0.8.0]( https://github.com/unicode-org/icu4x )
+- [yoke 0.8.0]( https://github.com/unicode-org/icu4x )
+- [zerofrom-derive 0.1.6]( https://github.com/unicode-org/icu4x )
+- [zerofrom 0.1.6]( https://github.com/unicode-org/icu4x )
+- [zerotrie 0.2.2]( https://github.com/unicode-org/icu4x )
+- [zerovec-derive 0.11.1]( https://github.com/unicode-org/icu4x )
+- [zerovec 0.11.4]( https://github.com/unicode-org/icu4x )
 
 <pre>
 UNICODE LICENSE V3

@@ -143,10 +143,10 @@ fn get_target() -> Result<(&'static str, &'static str, &'static str), String> {
 		var("CARGO_CFG_TARGET_ARCH").map_err(|e| format!("Failed to read target arch: {e}"))?;
 
 	match arch.as_str() {
-		"i686" => Ok(("i686", "MINGW32", "mingw-w64-i686-gcc")), // clang32 not supported anymore by mysys2
+		// "x86" => Ok(("i686", "MINGW32", "mingw-w64-i686-gcc")), //error: linker `i686-w64-mingw32-gcc` not found, clang32 not supported anymore by mysys2
 		"x86_64" => Ok(("x86_64", "MINGW64", "mingw-w64-x86_64-gcc")),
 		// "x86_64" => Ok(("x86_64", "CLANG64", "mingw-w64-clang-x86_64-clang")),
-		"aarch64" => Ok(("aarch64", "CLANGARM64", "unknown-clang")), // see https://github.com/ebiggers/wimlib/blob/e59d1de0f439d91065df7c47f647f546728e6a24/tools/windows-build.sh#L78-L89
+		// "aarch64" => Ok(("aarch64", "CLANGARM64", "mingw-w64-clang-aarch64-clang")), // configure: error: no acceptable C compiler found in $PATH, see https://github.com/ebiggers/wimlib/blob/e59d1de0f439d91065df7c47f647f546728e6a24/tools/windows-build.sh#L78-L89
 		other => Err(format!("Unsupported arch: {other}")),
 	}
 }
