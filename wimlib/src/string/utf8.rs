@@ -43,15 +43,14 @@ impl TStr {
 	}
 
 	/// Create a boxed TStr from a boxed CString
-	fn from_boxed_cstring(b: Box<CString>) -> Box<TStr> {
-		// SAFETY: Box<T> and Box<U> have identical layout because of #[repr(transparent)]
+	fn from_boxed_cstr(b: Box<CStr>) -> Box<TStr> {
+		// SAFETY: TStr is #[repr(transparent)] over CStr
 		unsafe { Box::from_raw(Box::into_raw(b) as *mut TStr) }
 	}
 
-	/// Create a boxed TStr from Rust str
 	pub fn from_str<S: AsRef<str>>(s: S) -> Result<Box<TStr>, Box<dyn std::error::Error>> {
-		let cstring = CString::new(s.as_ref())?;
-		Ok(Self::from_boxed_cstring(Box::new(cstring)))
+		let boxed_cstr = CString::new(s.as_ref())?.into_boxed_c_str();
+		Ok(Self::from_boxed_cstr(boxed_cstr))
 	}
 
 	/// Create a boxed TStr from Path
