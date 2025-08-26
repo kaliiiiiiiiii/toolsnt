@@ -43,14 +43,16 @@ impl Wim {
 	///   the WIM file
 	#[doc(alias = "wimlib_get_xml_data")]
 	pub fn xml_data(&self) -> Result<&U16Str, Error> {
-		let mut out_buf_data = null_mut();
-		let mut out_buf_len = 0;
+		let mut out_buf_data = std::ptr::null_mut();
+		let mut out_buf_len = 0usize;
 
 		result_from_raw(unsafe {
 			sys::wimlib_get_xml_data(self.wimstruct, &mut out_buf_data, &mut out_buf_len)
 		})?;
 
-		let widestr = unsafe { U16Str::from_ptr(out_buf_data.cast(), out_buf_len) };
+		// Convert bytes -> u16 length
+		let len_u16 = out_buf_len / 2;
+		let widestr = unsafe { U16Str::from_ptr(out_buf_data.cast(), len_u16) };
 		Ok(widestr)
 	}
 
