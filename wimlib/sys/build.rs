@@ -1,6 +1,7 @@
-use git2::{Repository, Status, StatusOptions};
+use anyhow::{Error, Result};
+use git2::Repository;
 use std::{
-	env::var,
+	env::{self, var},
 	fs, io,
 	path::{Path, PathBuf},
 	process::{Command, Output, Stdio},
@@ -41,28 +42,24 @@ fn system() -> Result<(), Box<dyn std::error::Error>> {
 	generate_bindings(bindgen::builder().header_contents("bindings.h", "#include <wimlib.h>"))
 }
 
-fn get_repo_url(repo_path: PathBuf) -> String {
-	let repo = match Repository::open(repo_path) {
-		Ok(r) => r,
-		Err(_) => return "unknown".to_string(),
-	};
+fn get_repo_url(repo_path: PathBuf) -> Result<String, Error> {
+	let repo = Repository::open(repo_path)?;
 
 	// Force the string to be owned immediately to avoid temporary borrow issues
 	if let Ok(remote) = repo.find_remote("origin") {
 		if let Some(url) = remote.url() {
-			return url.to_string(); // OWNED string
+			return Ok(url.to_string()); // OWNED string
 		}
 	}
-
-	"unknown".to_string()
+	Err(Error::msg("repo url not found"))
 }
 
-fn commitsha(repo_path: &PathBuf) -> String {
-	let repo = Repository::open(repo_path).unwrap();
+fn commitsha(repo_path: &PathBuf) -> Result<String, Error> {
+	let repo = Repository::open(repo_path)?;
 
-	let head_commit = repo.head().and_then(|h| h.peel_to_commit()).unwrap();
+	let head_commit = repo.head().and_then(|h| h.peel_to_commit())?;
 
-	return head_commit.id().to_string().to_string(); // SHA
+	return Ok(head_commit.id().to_string().to_string()); // SHA
 }
 
 fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> io::Result<()> {
@@ -79,34 +76,7 @@ fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> io::Result<()> 
 	Ok(())
 }
 
-fn git_clean(repo_path: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
-	let repo = Repository::open(repo_path)?;
-
-	let mut opts = StatusOptions::new();
-	opts.include_ignored(true)
-		.include_untracked(true)
-		.recurse_untracked_dirs(true);
-
-	let statuses = repo.statuses(Some(&mut opts))?;
-
-	for entry in statuses.iter() {
-		let s = entry.status();
-		if s.contains(Status::WT_NEW) || s.contains(Status::IGNORED) {
-			if let Some(path) = entry.path() {
-				let full_path = Path::new(repo_path.to_str().unwrap()).join(path);
-				if full_path.is_dir() {
-					fs::remove_dir_all(&full_path)?;
-				} else if full_path.is_file() {
-					fs::remove_file(&full_path)?;
-				}
-			}
-		}
-	}
-
-	Ok(())
-}
-
-fn cmd(cmd: &str, args: Vec<String>, cwd: &PathBuf, _msystem: &str) -> io::Result<Vec<u8>> {
+fn cmd(cmd: &str, args: Vec<String>, cwd: &PathBuf, _msystem: &str, require_success:bool) -> io::Result<Vec<u8>> {
 	let shell = r"C:\msys64\usr\bin\bash.exe";
 
 	// Run command
@@ -150,7 +120,7 @@ fn cmd(cmd: &str, args: Vec<String>, cwd: &PathBuf, _msystem: &str) -> io::Resul
 			.output()?;
 	}
 
-	if output.status.success() {
+	if !require_success || output.status.success() {
 		Ok(output.stdout)
 	} else {
 		eprintln!(
@@ -174,52 +144,67 @@ fn get_target() -> Result<(&'static str, &'static str, &'static str), String> {
 
 	match arch.as_str() {
 		"i686" => Ok(("i686", "MINGW32", "mingw-w64-i686-gcc")), // clang32 not supported anymore by mysys2
-		"x86_64" => Ok(("x86_64", "MINGW64", "mingw-w64-x86_64-gcc")), // or ("x86_64", "CLANG64", "mingw-w64-clang-x86_64-clang")
-		"aarch64" => Ok(("aarch64", "CLANGARM64", "external")), // see https://github.com/ebiggers/wimlib/blob/e59d1de0f439d91065df7c47f647f546728e6a24/tools/windows-build.sh#L78-L89
+		"x86_64" => Ok(("x86_64", "MINGW64", "mingw-w64-x86_64-gcc")),
+		// "x86_64" => Ok(("x86_64", "CLANG64", "mingw-w64-clang-x86_64-clang")),
+		"aarch64" => Ok(("aarch64", "CLANGARM64", "unknown-clang")), // see https://github.com/ebiggers/wimlib/blob/e59d1de0f439d91065df7c47f647f546728e6a24/tools/windows-build.sh#L78-L89
 		other => Err(format!("Unsupported arch: {other}")),
 	}
 }
 
-#[cfg(windows)]
-fn first_dir(path: &PathBuf) -> Option<PathBuf> {
-	if !path.exists() {
-		return None;
+pub fn find_mysys_include(sysenv: &str, target: &str) -> Result<Vec<String>, Error> {
+	let output: Vec<u8>;
+	if target.contains("gcc") {
+		output = cmd(
+			"sh",
+			vec![
+				"-c".to_string(),
+				format!("echo | gcc -xc++ --target {target} -E -v - 2>&1"),
+			], // redirect stderr to stdout
+			&env::current_dir()?,
+			sysenv,
+			false
+		)?;
+	} else if target.contains("clang") {
+		output = cmd(
+			"sh",
+			vec![
+				"-c".to_string(),
+				format!("echo | clang++ -E -x c++ -target {target} - -v 2>&1"), // redirect stderr to stdout
+			],
+			&env::current_dir()?,
+			sysenv,
+			false
+		)?;
+	} else {
+		return Ok(vec![]);
 	}
 
-	let mut dirs: Vec<PathBuf> = fs::read_dir(path)
-		.ok()?
-		.filter_map(|entry| entry.ok())
-		.map(|entry| entry.path())
-		.filter(|path| path.is_dir())
-		.collect();
-
-	dirs.sort();
-	dirs.into_iter().next()
+	Ok(parse_include_dirs(std::str::from_utf8(&output)?))
 }
 
-#[cfg(windows)]
-pub fn find_mysys_include(sysenv: &str, mingw_host: &str, mingw_target: &str) -> Option<PathBuf> {
-	let include_dir: PathBuf;
-	let msys2_root = PathBuf::from("C:\\msys64");
-	if mingw_target.contains("gcc") {
-		let gcc_base_path = msys2_root
-			.join(sysenv.to_lowercase())
-			.join("lib\\gcc")
-			.join(mingw_host);
-		let version_dir = first_dir(&gcc_base_path)?;
-		include_dir = version_dir.join("include");
-	} else if mingw_target.contains("clang") {
-		let clang_root = msys2_root.join(sysenv.to_lowercase()).join("lib\\clang");
-		include_dir = first_dir(&clang_root)?.join("include")
-	} else {
-		return None;
+fn parse_include_dirs(compiler_output: &str) -> Vec<String> {
+	// echo | clang++ -E -x c++ - -v
+	// echo | gcc -xc++ -E -v -
+	let mut dirs = Vec::new();
+	let mut in_section = false;
+
+	for line in compiler_output.lines() {
+		if line.contains("#include <...> search starts here:") {
+			in_section = true;
+			continue;
+		}
+		if line.starts_with("End of search list.") {
+			in_section = false;
+		}
+
+		if in_section && (line.starts_with('/') || line.contains(':')) {
+			// On Linux/Unix: absolute paths start with "/"
+			// On Windows/MSYS: drive paths like "C:/..."
+			dirs.push(line.trim().to_string());
+		}
 	}
 
-	if include_dir.exists() {
-		Some(include_dir)
-	} else {
-		None
-	}
+	dirs
 }
 
 /// Build and set linking instructions
@@ -227,7 +212,7 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 	let cargo_target_dir: PathBuf;
 	#[cfg(windows)]
 	{
-		if var("CARGO_CFG_TARGET_ENV").unwrap() == "msvc" {
+		if var("CARGO_CFG_TARGET_ENV")? == "msvc" {
 			todo!("Building wimlib on windows for windows msvc isn't implemented yet. Needs https://stackoverflow.com/a/69293718/20443541");
 		}
 		#[cfg(windows)]
@@ -235,13 +220,13 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 			println!("cargo:warning=Building wimlib on windows for windows links libwim-15.dll dynamically");
 			cargo_target_dir = PathBuf::from(
 			var("CARGO_TARGET_DIR").expect("This crate requires CARGO_TARGET_DIR to be set for building for windows on windows. This is required for corretly placing libwim-15.dll"))
-			.join(var("TARGET").unwrap())
-			.join(var("PROFILE").unwrap())
+			.join(var("TARGET")?)
+			.join(var("PROFILE")?)
 			.join("libwim-15.dll");
 		}
 	}
 	let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-	let commitsha = commitsha(&manifest_dir.join("wimlib"));
+	let commitsha = commitsha(&manifest_dir.join("wimlib"))?;
 
 	let (arch, sysenv, mingw_target) = get_target()?;
 
@@ -253,11 +238,9 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 	fs::create_dir_all(include)?;
 
 	let mut extra_bindgen_args: Vec<String> = vec![];
-	let mut bindgen_target: String = var("CARGO_CFG_TARGET_ARCH").unwrap();
+	let mut bindgen_target: String = var("TARGET")?;
 
-	// create clean workspace
-	// git_clean(&manifest_dir.join("wimlib"))?;
-	if wimlib_src.is_dir() {
+	if wimlib_src.is_dir() { // we want a new clean workspace
 		fs::remove_dir_all(wimlib_src)?;
 	}
 	copy_dir_all(manifest_dir.join("wimlib"), wimlib_src)?;
@@ -265,32 +248,32 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 	// get wimlib version
 	let bversion: Vec<u8>;
 	bversion = cmd(
-		wimlib_src
+		&wimlib_src
 			.join("tools/get-version-number.sh")
-			.to_str()
-			.unwrap(),
+			.to_string_lossy(),
 		vec![],
 		wimlib_src,
 		sysenv,
+		true
 	)?;
-	let version = std::str::from_utf8(&bversion)?.trim_start().trim_end();
+	let version = std::str::from_utf8(&bversion)?.trim();
 
 	println!(
 		"cargo:warning=Building wimlib version: {} from {} at {}",
 		version,
-		get_repo_url(manifest_dir.join("wimlib")),
+		get_repo_url(manifest_dir.join("wimlib"))?,
 		commitsha
 	);
 	println!("cargo:rustc-env=LIB_VERSION={}", version);
 
 	// bootstrap
 	cmd(
-		&wimlib_src.join("bootstrap").to_str().unwrap(),
+		&wimlib_src.join("bootstrap").to_string_lossy(),
 		vec![],
 		wimlib_src,
 		sysenv,
+		true
 	)?;
-
 	// build for windows build target
 	if var("CARGO_CFG_TARGET_OS")? == "windows" {
 		// autoreconf
@@ -315,6 +298,7 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 			args,
 			wimlib_src,
 			sysenv,
+			true
 		)?;
 
 		// run windows-build.sh
@@ -326,7 +310,7 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 		#[cfg(windows)]
 		args.push("--install-prerequisites".to_string());
 
-		cmd(&buildscript.to_string_lossy(), args, wimlib_src, sysenv)?;
+		cmd(&buildscript.to_string_lossy(), args, wimlib_src, sysenv, true)?;
 
 		// copy output files to include and lib
 		fs::copy(
@@ -352,22 +336,14 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 		extra_bindgen_args.push(format!("-D_WIN32"));
 		extra_bindgen_args.push(format!(
 			"-I{}",
-			wimlib_src.join("include").to_str().unwrap()
+			wimlib_src.join("include").to_string_lossy()
 		));
 		bindgen_target = format!("{arch}-pc-windows-gnu");
 
-		#[cfg(windows)]
-		{
-			if let Some(mysys_include) = find_mysys_include(sysenv, &mingw_host, &mingw_target) {
-				extra_bindgen_args.push(format!("-I{}", mysys_include.to_string_lossy()));
-			} else {
-				println!(
-					"cargo:warning=System include might be missing, not resolved, to implement"
-				);
-			}
+		for include in find_mysys_include(sysenv, &mingw_target)? {
+			println!("cargo:warning=Found extra include: {include}");
+			extra_bindgen_args.push(format!("-I{include}"));
 		}
-		#[cfg(not(windows))]
-		println!("cargo:warning=System include might be missing, not resolved, to implement");
 	} else {
 		// not building on windows
 		println!("cargo:warning=System include might be missing, not resolved, to implement");
@@ -384,12 +360,17 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 			OUT_DIR.join("lib").to_string_lossy()
 		);
 		println!("cargo:rustc-link-lib=static=wim");
+		for include in find_mysys_include(sysenv, &mingw_target)? {
+			println!("cargo:warning=Found extra include: {include}");
+			extra_bindgen_args.push(format!("-I{include}"));
+		}
 	}
 
 	println!(
 		"cargo:rerun-if-changed={}",
 		manifest_dir.join("wimlib").to_string_lossy()
 	);
+
 	let builder = bindgen::builder()
 		.header(OUT_DIR.join("include/wimlib.h").to_string_lossy())
 		.clang_arg(format!("--target={bindgen_target}"))
