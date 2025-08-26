@@ -48,6 +48,7 @@ impl TStr {
 		unsafe { Box::from_raw(Box::into_raw(b) as *mut TStr) }
 	}
 
+	/// Create a boxed TStr from a Rust `&str`
 	pub fn from_str<S: AsRef<str>>(s: S) -> Result<Box<TStr>, Box<dyn std::error::Error>> {
 		let boxed_cstr = CString::new(s.as_ref())?.into_boxed_c_str();
 		Ok(Self::from_boxed_cstr(boxed_cstr))
