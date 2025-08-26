@@ -209,7 +209,7 @@ fn parse_include_dirs(compiler_output: &str) -> Vec<String> {
 
 /// Build and set linking instructions
 fn bundled() -> Result<(), Box<dyn std::error::Error>> {
-	let cargo_target_dir: PathBuf;
+	let _cargo_target_dir: PathBuf;
 	#[cfg(windows)]
 	{
 		if var("CARGO_CFG_TARGET_ENV")? == "msvc" {
@@ -218,7 +218,7 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 		#[cfg(windows)]
 		{
 			println!("cargo:warning=Building wimlib on windows for windows links libwim-15.dll dynamically");
-			cargo_target_dir = PathBuf::from(
+			_cargo_target_dir = PathBuf::from(
 			var("CARGO_TARGET_DIR").expect("This crate requires CARGO_TARGET_DIR to be set for building for windows on windows. This is required for corretly placing libwim-15.dll"))
 			.join(var("TARGET")?)
 			.join(var("PROFILE")?)
@@ -319,7 +319,7 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 		)?;
 
 		#[cfg(windows)]
-		fs::copy(wimlib_src.join(".libs/libwim-15.dll"), cargo_target_dir)
+		fs::copy(wimlib_src.join(".libs/libwim-15.dll"), _cargo_target_dir)
 			.expect("copying .libs/libwim-15.dll failed");
 
 		println!(

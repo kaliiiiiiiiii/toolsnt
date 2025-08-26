@@ -4,8 +4,8 @@ use {
 	std::{
 		ffi::{c_char, CStr, CString, FromBytesWithNulError},
 		fmt::{Debug, Display},
-		str::Utf8Error,
 		path::Path,
+		str::Utf8Error,
 	},
 };
 
@@ -42,16 +42,23 @@ impl TStr {
 		Ok(Self::from_impl(cstr))
 	}
 
-	pub fn from_str<S: AsRef<str>>(s: S) -> Result<Box<TStr>, Box<dyn std::error::Error>> {
-		let cstring = CString::new(s.as_ref())?; // fail if NUL inside string
-		Ok(Box::new(TStr { inner: cstring }))
+	/// Create a boxed TStr from a boxed CString
+	fn from_boxed_cstring(b: Box<CString>) -> Box<TStr> {
+		// SAFETY: Box<T> and Box<U> have identical layout because of #[repr(transparent)]
+		unsafe { Box::from_raw(Box::into_raw(b) as *mut TStr) }
 	}
 
+	/// Create a boxed TStr from Rust str
+	pub fn from_str<S: AsRef<str>>(s: S) -> Result<Box<TStr>, Box<dyn std::error::Error>> {
+		let boxed_cstring = CString::new(s.as_ref())?.into_boxed_cstring();
+		Ok(Self::from_boxed_cstring(boxed_cstring))
+	}
+
+	/// Create a boxed TStr from Path
 	pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Box<TStr>, Box<dyn std::error::Error>> {
-		// to_string_lossy returns Cow<str> safely even with non-UTF-8
 		Self::from_str(path.as_ref().to_string_lossy())
 	}
-
+	
 	/// Wrap a raw string
 	///
 	/// # Safety
