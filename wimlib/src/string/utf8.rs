@@ -50,15 +50,15 @@ impl TStr {
 
 	/// Create a boxed TStr from Rust str
 	pub fn from_str<S: AsRef<str>>(s: S) -> Result<Box<TStr>, Box<dyn std::error::Error>> {
-		let boxed_cstring = CString::new(s.as_ref())?.into_boxed_cstring();
-		Ok(Self::from_boxed_cstring(boxed_cstring))
+		let cstring = CString::new(s.as_ref())?;
+		Ok(Self::from_boxed_cstring(Box::new(cstring)))
 	}
 
 	/// Create a boxed TStr from Path
 	pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Box<TStr>, Box<dyn std::error::Error>> {
 		Self::from_str(path.as_ref().to_string_lossy())
 	}
-	
+
 	/// Wrap a raw string
 	///
 	/// # Safety
