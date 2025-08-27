@@ -47,6 +47,11 @@ impl TStr {
 		Ok(TStr::from_boxed_ucstr(boxed_ucstr))
 	}
 
+	/// create boxed Tstr from bytes
+	pub fn from_bytes<B: AsRef<[u8]>>(bytes: B) -> Result<Box<TStr>, Box<dyn std::error::Error>> {
+		Self::from_str(std::str::from_utf8(bytes.as_ref())?)
+	}
+
 	/// create boxed tstr from Path
 	pub fn from_path<P>(path: P) -> Result<Box<TStr>, Box<dyn std::error::Error>>
 	where

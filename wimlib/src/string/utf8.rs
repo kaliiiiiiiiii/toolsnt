@@ -48,11 +48,16 @@ impl TStr {
 		unsafe { Box::from_raw(Box::into_raw(b) as *mut TStr) }
 	}
 
+	/// create a boxed Tstr from bytes
+	pub fn from_bytes<B: AsRef<[u8]>>(bytes: B) -> Result<Box<TStr>, Box<dyn std::error::Error>> {
+        let cstr = CString::new(bytes.as_ref())?;
+        Ok(Self::from_boxed_cstr(cstr.into_boxed_c_str()))
+    }
+
 	/// Create a boxed TStr from a Rust `&str`
 	pub fn from_str<S: AsRef<str>>(s: S) -> Result<Box<TStr>, Box<dyn std::error::Error>> {
-		let boxed_cstr = CString::new(s.as_ref())?.into_boxed_c_str();
-		Ok(Self::from_boxed_cstr(boxed_cstr))
-	}
+        Self::from_bytes(s.as_ref().as_bytes())
+    }
 
 	/// Create a boxed TStr from Path
 	pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Box<TStr>, Box<dyn std::error::Error>> {
