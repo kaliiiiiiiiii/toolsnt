@@ -12,17 +12,17 @@ static OUT_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
 	PathBuf::from(var("OUT_DIR").expect("Expected OUT_DIR to exist inside build context"))
 });
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), Error> {
 	let is_docs_rs = std::env::var("DOCS_RS").is_ok();
 
 	if cfg!(feature = "bundled") || is_docs_rs {
-		bundled()
+		return bundled();
 	} else {
-		system()
+		return system();
 	}
 }
 
-fn generate_bindings(builder: bindgen::Builder) -> Result<(), Box<dyn std::error::Error>> {
+fn generate_bindings(builder: bindgen::Builder) -> Result<(), Error> {
 	let bindings = builder
 		.allowlist_item("wimlib_.*")
 		.allowlist_item("WIMLIB_.*")
@@ -35,7 +35,7 @@ fn generate_bindings(builder: bindgen::Builder) -> Result<(), Box<dyn std::error
 }
 
 /// Set linking and generating instructions for system library
-fn system() -> Result<(), Box<dyn std::error::Error>> {
+fn system() -> Result<(), Error> {
 	let lib = pkg_config::probe_library("wimlib")?;
 	println!("cargo::rustc-env=LIB_VERSION={}", lib.version);
 
@@ -76,7 +76,13 @@ fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> io::Result<()> 
 	Ok(())
 }
 
-fn cmd(cmd: &str, args: Vec<String>, cwd: &PathBuf, _msystem: &str, require_success:bool) -> io::Result<Vec<u8>> {
+fn cmd(
+	cmd: &str,
+	args: Vec<String>,
+	cwd: &PathBuf,
+	_msystem: &str,
+	require_success: bool,
+) -> io::Result<Vec<u8>> {
 	let shell = r"C:\msys64\usr\bin\bash.exe";
 
 	// Run command
@@ -138,16 +144,15 @@ fn cmd(cmd: &str, args: Vec<String>, cwd: &PathBuf, _msystem: &str, require_succ
 	}
 }
 
-fn get_target() -> Result<(&'static str, &'static str, &'static str), String> {
-	let arch =
-		var("CARGO_CFG_TARGET_ARCH").map_err(|e| format!("Failed to read target arch: {e}"))?;
+fn get_target() -> Result<(&'static str, &'static str, &'static str), Error> {
+	let arch = var("CARGO_CFG_TARGET_ARCH")?;
 
 	match arch.as_str() {
 		// "x86" => Ok(("i686", "MINGW32", "mingw-w64-i686-gcc")), //error: linker `i686-w64-mingw32-gcc` not found, clang32 not supported anymore by mysys2
 		"x86_64" => Ok(("x86_64", "MINGW64", "mingw-w64-x86_64-gcc")),
 		// "x86_64" => Ok(("x86_64", "CLANG64", "mingw-w64-clang-x86_64-clang")),
 		// "aarch64" => Ok(("aarch64", "CLANGARM64", "mingw-w64-clang-aarch64-clang")), // configure: error: no acceptable C compiler found in $PATH, see https://github.com/ebiggers/wimlib/blob/e59d1de0f439d91065df7c47f647f546728e6a24/tools/windows-build.sh#L78-L89
-		other => Err(format!("Unsupported arch: {other}")),
+		other => Err(Error::msg(format!("Unsupported arch: {other}"))),
 	}
 }
 
@@ -162,7 +167,7 @@ pub fn find_mysys_include(sysenv: &str, target: &str) -> Result<Vec<String>, Err
 			], // redirect stderr to stdout
 			&env::current_dir()?,
 			sysenv,
-			false
+			false,
 		)?;
 	} else if target.contains("clang") {
 		output = cmd(
@@ -173,7 +178,7 @@ pub fn find_mysys_include(sysenv: &str, target: &str) -> Result<Vec<String>, Err
 			],
 			&env::current_dir()?,
 			sysenv,
-			false
+			false,
 		)?;
 	} else {
 		return Ok(vec![]);
@@ -208,8 +213,8 @@ fn parse_include_dirs(compiler_output: &str) -> Vec<String> {
 }
 
 /// Build and set linking instructions
-fn bundled() -> Result<(), Box<dyn std::error::Error>> {
-	let _cargo_target_dir: PathBuf;
+fn bundled() -> Result<(), Error> {
+	let mut _cargo_target_dir: PathBuf;
 	#[cfg(windows)]
 	{
 		if var("CARGO_CFG_TARGET_ENV")? == "msvc" {
@@ -223,6 +228,18 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 			.join(var("TARGET")?)
 			.join(var("PROFILE")?)
 			.join("libwim-15.dll");
+			if !_cargo_target_dir.exists() {
+				_cargo_target_dir = PathBuf::from(
+				var("CARGO_TARGET_DIR").expect("This crate requires CARGO_TARGET_DIR to be set for building for windows on windows. This is required for corretly placing libwim-15.dll"))
+				.join(var("PROFILE")?)
+				.join("libwim-15.dll");
+			};
+			if !_cargo_target_dir.exists() {
+				return Err(Error::msg(format!(
+					"target dir to copy libwim-15.dll: {} not found",
+					_cargo_target_dir.to_string_lossy()
+				)));
+			}
 		}
 	}
 	let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -240,7 +257,8 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 	let mut extra_bindgen_args: Vec<String> = vec![];
 	let mut bindgen_target: String = var("TARGET")?;
 
-	if wimlib_src.is_dir() { // we want a new clean workspace
+	if wimlib_src.is_dir() {
+		// we want a new clean workspace
 		fs::remove_dir_all(wimlib_src)?;
 	}
 	copy_dir_all(manifest_dir.join("wimlib"), wimlib_src)?;
@@ -254,7 +272,7 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 		vec![],
 		wimlib_src,
 		sysenv,
-		true
+		true,
 	)?;
 	let version = std::str::from_utf8(&bversion)?.trim();
 
@@ -272,7 +290,7 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 		vec![],
 		wimlib_src,
 		sysenv,
-		true
+		true,
 	)?;
 	// build for windows build target
 	if var("CARGO_CFG_TARGET_OS")? == "windows" {
@@ -298,7 +316,7 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 			args,
 			wimlib_src,
 			sysenv,
-			true
+			true,
 		)?;
 
 		// run windows-build.sh
@@ -310,7 +328,13 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 		#[cfg(windows)]
 		args.push("--install-prerequisites".to_string());
 
-		cmd(&buildscript.to_string_lossy(), args, wimlib_src, sysenv, true)?;
+		cmd(
+			&buildscript.to_string_lossy(),
+			args,
+			wimlib_src,
+			sysenv,
+			true,
+		)?;
 
 		// copy output files to include and lib
 		fs::copy(
@@ -319,8 +343,7 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 		)?;
 
 		#[cfg(windows)]
-		fs::copy(wimlib_src.join(".libs/libwim-15.dll"), _cargo_target_dir)
-			.expect("copying .libs/libwim-15.dll failed");
+		fs::copy(wimlib_src.join(".libs/libwim-15.dll"), _cargo_target_dir)?;
 
 		println!(
 			"cargo:rustc-link-search=native={}",
@@ -341,7 +364,7 @@ fn bundled() -> Result<(), Box<dyn std::error::Error>> {
 		bindgen_target = format!("{arch}-pc-windows-gnu");
 
 		for include in find_mysys_include(sysenv, &mingw_target)? {
-			println!("cargo:warning=Found extra include: {include}");
+			println!("cargo:warning=Found extra include at: {include}");
 			extra_bindgen_args.push(format!("-I{include}"));
 		}
 	} else {
