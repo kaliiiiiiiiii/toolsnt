@@ -214,7 +214,7 @@ fn parse_include_dirs(compiler_output: &str) -> Vec<String> {
 
 /// Build and set linking instructions
 fn bundled() -> Result<(), Error> {
-	let mut _cargo_target_dir: PathBuf;
+	let mut _libwim_target_path: PathBuf;
 	#[cfg(windows)]
 	{
 		if var("CARGO_CFG_TARGET_ENV")? == "msvc" {
@@ -223,21 +223,21 @@ fn bundled() -> Result<(), Error> {
 		#[cfg(windows)]
 		{
 			println!("cargo:warning=Building wimlib on windows for windows links libwim-15.dll dynamically");
-			_cargo_target_dir = PathBuf::from(
+			_libwim_target_path = PathBuf::from(
 			var("CARGO_TARGET_DIR").expect("This crate requires CARGO_TARGET_DIR to be set for building for windows on windows. This is required for corretly placing libwim-15.dll"))
 			.join(var("TARGET")?)
 			.join(var("PROFILE")?)
 			.join("libwim-15.dll");
-			if !_cargo_target_dir.exists() {
-				_cargo_target_dir = PathBuf::from(
+			if !_libwim_target_path.parent().map_or_else(|| false, |f|f.exists()){
+				_libwim_target_path = PathBuf::from(
 				var("CARGO_TARGET_DIR").expect("This crate requires CARGO_TARGET_DIR to be set for building for windows on windows. This is required for corretly placing libwim-15.dll"))
 				.join(var("PROFILE")?)
 				.join("libwim-15.dll");
 			};
-			if !_cargo_target_dir.exists() {
+			if !_libwim_target_path.parent().map_or_else(|| false, |f|f.exists()) {
 				return Err(Error::msg(format!(
 					"target dir to copy libwim-15.dll: {} not found",
-					_cargo_target_dir.to_string_lossy()
+					_libwim_target_path.to_string_lossy()
 				)));
 			}
 		}
@@ -343,7 +343,7 @@ fn bundled() -> Result<(), Error> {
 		)?;
 
 		#[cfg(windows)]
-		fs::copy(wimlib_src.join(".libs/libwim-15.dll"), _cargo_target_dir)?;
+		fs::copy(wimlib_src.join(".libs/libwim-15.dll"), _libwim_target_path)?;
 
 		println!(
 			"cargo:rustc-link-search=native={}",
